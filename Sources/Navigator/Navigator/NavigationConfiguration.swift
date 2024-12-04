@@ -10,7 +10,7 @@ import SwiftUI
 public struct NavigationConfiguration {
 
     /// Provides a basic dependency injection mechanism for view construction
-    let container: NavigationContainer
+    let container: NavigationContainer?
 
     /// Provide a restorationKey to enable state restoration in named ManagedNavigationControllers.
     ///
@@ -30,17 +30,9 @@ public struct NavigationConfiguration {
         restorationKey: String? = nil,
         logger: ((String) -> Void)? = { print($0) }
     ) {
-        self.container = container ?? EmptyContainer()
+        self.container = container
         self.restorationKey = restorationKey
         self.logger = logger
     }
 
-}
-
-public protocol NavigationContainer {
-    // empty protocol
-}
-
-private struct EmptyContainer: NavigationContainer {
-    // does nothing
 }

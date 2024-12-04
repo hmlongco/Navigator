@@ -17,7 +17,7 @@ public enum HomeDestinations: Codable {
 }
 
 extension HomeDestinations: NavigationDestination {
-    public var body: some View {
+    public func view(_ navigator: Navigator) -> some View {
         switch self {
         case .page2:
             HomePage2View()

@@ -111,7 +111,7 @@ public protocol NavigationDestination: Hashable, Equatable, Identifiable {
     ///     }
     /// }
     /// ```
-    @MainActor @ViewBuilder var body: Self.Body { get }
+    @MainActor @ViewBuilder func view(_ navigator: Navigator) -> Self.Body
 
     /// Can be overridden to define a specific presentation type for each destination.
     var method: NavigationMethod { get }
@@ -131,8 +131,8 @@ extension NavigationDestination {
     }
 
     /// Convenience function returns body.
-    @MainActor public func callAsFunction() -> some View {
-        body
+    @MainActor public func callAsFunction(_ navigator: Navigator) -> some View {
+        view(navigator)
     }
 
     /// Equatable conformance.
@@ -152,10 +152,13 @@ extension AnyNavigationDestination: Identifiable {
 }
 
 extension AnyNavigationDestination {
-    @MainActor public func callAsFunction() -> AnyView { AnyView(wrapped.body) }
+    @MainActor public func callAsFunction(_ navigator: Navigator) -> AnyView {
+        AnyView(wrapped.view(navigator))
+    }
 }
 
 extension View {
+
     /// Registers ``NavigationDestination`` types in order to enable `navigationLink(value:label)` behaviors.
     /// ```swift
     /// ManagedNavigationStack {
@@ -165,8 +168,34 @@ extension View {
     /// ```
     /// This also makes using the same destination type with more than one navigation stack a lot easier.
     public func navigationDestination<T: NavigationDestination>(_ type: T.Type) -> some View {
-        self.navigationDestination(for: type) { destination in
-            destination()
-        }
+        self.modifier(NavigationDestinationModifier(type: type))
+    }
+
+    public func view(for destination: any NavigationDestination) -> some View {
+        self.modifier(ViewForNavigationDestinationModifier(destination: destination))
+    }
+
+    public func view(for destination: AnyNavigationDestination) -> some View {
+        self.modifier(ViewForNavigationDestinationModifier(destination: destination.wrapped))
+    }
+
+}
+
+private struct NavigationDestinationModifier<T: NavigationDestination>: ViewModifier {
+    let type: T.Type
+    @Environment(\.navigator) var navigator
+    func body(content: Content) -> some View {
+        content
+            .navigationDestination(for: type) { destination in
+                destination(navigator)
+            }
+    }
+}
+
+private struct ViewForNavigationDestinationModifier: ViewModifier {
+    let destination: any NavigationDestination
+    @Environment(\.navigator) var navigator
+    func body(content: Content) -> some View {
+        AnyView(destination.view(navigator))
     }
 }

@@ -22,7 +22,7 @@ public class Navigator: ObservableObject {
 
 //    @Published public var custom: AnyNavigationDestination? = nil
 
-    internal let configuration: NavigationConfiguration?
+    internal var configuration: NavigationConfiguration?
 
     internal weak var parent: Navigator?
     internal var children: [UUID : WeakObject<Navigator>] = [:]
@@ -40,6 +40,7 @@ public class Navigator: ObservableObject {
     /// Allows public initialization of root Navigators.
     public init(configuration: NavigationConfiguration? = nil) {
         self.configuration = configuration
+        self.container = configuration?.container ?? DefaultNavigationContainer()
         self.parent = nil
         self.publisher = .init()
         self.dismissible = false
@@ -49,6 +50,7 @@ public class Navigator: ObservableObject {
     /// Internal initializer used by ManagedNavigationStack and navigationDismissible modifiers.
     internal init(parent: Navigator, dismissible: Bool) {
         self.configuration = parent.configuration
+        self.container = parent.container
         self.parent = parent
         self.publisher = parent.publisher
         self.dismissible = dismissible
@@ -66,6 +68,8 @@ public class Navigator: ObservableObject {
     public var root: Navigator {
         parent?.root ?? self
     }
+
+    public var container: NavigationContainer
 
     /// Adds a child Navigator to a parent Navigator.
     internal func addChild(_ child: Navigator) {

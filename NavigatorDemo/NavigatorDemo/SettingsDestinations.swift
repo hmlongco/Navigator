@@ -14,8 +14,12 @@ public enum SettingsDestinations: Int, Codable {
     case sheet
 }
 
+protocol MyContainer {
+
+}
+
 extension SettingsDestinations: NavigationDestination {
-    public var body: some View {
+    public func view(_ navigator: Navigator) -> some View {
         switch self {
         case .page2:
             Page2SettingsView()

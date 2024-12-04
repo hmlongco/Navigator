@@ -68,10 +68,10 @@ public struct ManagedNavigationStack<Content: View>: View {
                 }
             }
             .sheet(item: $navigator.sheet ) { destination in
-                destination()
+                destination(navigator)
             }
             .fullScreenCover(item: $navigator.cover) { destination in
-                destination()
+                destination(navigator)
             }
             .environment(\.navigator, navigator)
         }

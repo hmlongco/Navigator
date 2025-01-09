@@ -1,0 +1,12 @@
+version: 1
+builder:
+  configs:
+    - platform: ios
+      scheme: Navigator
+    - platform: macos-xcodebuild
+      scheme: Navigator
+    - platform: tvos
+      scheme: Navigator
+    - platform: watchos
+      scheme: Navigator
+    - documentation_targets: [Navigator]

@@ -2,3 +2,4 @@ version: 1
 builder:
   configs:
   - scheme: Navigator
+  documentation_targets: [Navigator]

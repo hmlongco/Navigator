@@ -92,7 +92,7 @@ import SwiftUI
 ///
 /// > Important: When using `NavigationLink(value:label:)` the method will be ignored and SwiftUI will push
 /// the value onto the navigation stack as it would normally.
-public protocol NavigationDestination: Codable, Hashable, Equatable, Identifiable {
+public protocol NavigationDestination: Codable, Hashable, Identifiable {
 
     associatedtype Content: View
 

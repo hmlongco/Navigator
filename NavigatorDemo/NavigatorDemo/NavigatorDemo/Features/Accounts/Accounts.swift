@@ -69,4 +69,4 @@ struct AccountDisclaimersView: View {
     }
 }
 
-struct Account: Hashable {}
+struct Account: Hashable, Codable {}

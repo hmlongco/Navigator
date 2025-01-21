@@ -8,7 +8,7 @@
 import Navigator
 import SwiftUI
 
-public enum HomeDestinations: Codable {
+public enum HomeDestinations {
     case home(String)
     case page2
     case page3

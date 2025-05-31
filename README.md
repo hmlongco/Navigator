@@ -110,7 +110,7 @@ Button("Button Push Home Page 55") {
     navigator.push(HomeDestinations.pageN(55))
 }
 ```
-In case you're wondering, calling `push` pushes the associate view onto the current `NavigationStack`, while `Navigate(to:)` will push
+In case you're wondering, calling `push` pushes the associated view onto the current `NavigationStack`, while `navigate(to:)` will push
 the view or present the view, based on the `NavigationMethod` specified (coming up next).
 
 ### Navigation Methods

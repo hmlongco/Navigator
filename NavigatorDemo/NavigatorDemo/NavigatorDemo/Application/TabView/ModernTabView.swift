@@ -15,7 +15,7 @@ struct ModernTabView : View {
         TabView(selection: $selectedTab) {
             ForEach(RootTabs.tabs) { tab in
                 Tab(tab.title, systemImage: tab.image, value: tab) {
-                    tab
+                    tab()
                 }
             }
         }

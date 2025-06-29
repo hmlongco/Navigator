@@ -175,7 +175,7 @@ struct CustomSettingsSheetSection: View {
                 showSettings = .page3
             }
             .sheet(item: $showSettings) { destination in
-                destination
+                destination.body
                     .managedPresentationView()
             }
         }

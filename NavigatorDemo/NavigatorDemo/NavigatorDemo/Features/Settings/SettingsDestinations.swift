@@ -8,17 +8,15 @@
 import NavigatorUI
 import SwiftUI
 
-public enum SettingsDestinations: Codable {
+public enum SettingsDestinations: NavigationDestination, Codable {
+
     case page2
     case page3
     case sheet
     case external
     case presentLoading
-}
 
-extension SettingsDestinations: NavigationDestination {
-
-     public var body: some View {
+    public var body: some View {
         switch self {
         case .page2:
             Page2SettingsView()

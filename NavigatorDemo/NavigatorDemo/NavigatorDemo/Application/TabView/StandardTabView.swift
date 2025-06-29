@@ -13,7 +13,7 @@ struct StandardTabView : View {
     var body: some View {
         TabView(selection: $selectedTab) {
             ForEach(RootTabs.tabs) { tab in
-                tab
+                tab()
                     .tabItem { Label(tab.title, systemImage: tab.image) }
                     .tag(tab)
             }

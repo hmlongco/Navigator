@@ -42,7 +42,7 @@ class AppResolver: AppDependencies {
         NavigationViewProvider {
             switch $0 {
             case .external:
-                SettingsDestinations.external
+                SettingsDestinations.external()
             }
         }
     }

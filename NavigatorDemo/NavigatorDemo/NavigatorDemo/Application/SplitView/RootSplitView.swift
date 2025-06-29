@@ -15,7 +15,7 @@ struct RootSplitView: View {
             SidebarView(selectedTab: $selectedTab)
                 .navigationSplitViewColumnWidth(200)
         } detail: {
-            selectedTab
+            selectedTab?()
         }
         .onNavigationReceive(assign: $selectedTab, delay: 0.8) // switching root views needs a little more time
         // set route handler for this view type

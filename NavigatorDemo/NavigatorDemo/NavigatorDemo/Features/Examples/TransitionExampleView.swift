@@ -49,7 +49,7 @@ struct TransitionListView: View {
             switch destination {
             case .destination1:
                 // 5. expand destination to provide the needed destination view
-                destination
+                destination()
                     // 6. add transition modifier
                     .navigationTransition(.zoom(sourceID: "zoom", in: namespace))
             }

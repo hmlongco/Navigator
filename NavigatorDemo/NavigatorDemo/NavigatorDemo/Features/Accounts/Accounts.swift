@@ -36,7 +36,7 @@ struct PresentAccountDestinationsView: View {
                 presentView = .disclaimers(account)
             }
             .sheet(item: $presentView) { destination in
-                destination
+                destination()
             }
         }
     }

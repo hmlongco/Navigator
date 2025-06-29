@@ -38,7 +38,7 @@ struct ApplicationRootView: View {
     func applicationView(_ resolver: AppResolver) -> some View {
         // Remember that modifiers wrap their parent view or parent modifiers, which means that they work from the outside in.
         // So here we're setting up dependencies first, then navigation, then url handlers.
-        appRootType
+        appRootType()
             // setup url handlers
             .onNavigationOpenURL(
                 SimpleURLHandler(),

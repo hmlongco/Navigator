@@ -43,12 +43,9 @@ import SwiftUI
 ///     }
 /// }
 /// ```
-/// Yes, NavigationDestination's are Views!
+/// Yes, NavigationDestinations's can act as Views!
 ///
 /// Note how associated values can be used to pass parameters to views as needed.
-///
-/// > Important: As of 6.2 it looks like `NavigationDestination` conformance **must** be done as an extension and **not** on the original
-/// enumeration. This aligns with Swift 6.2’s requirement that protocol isolation must be explicit at the conformance site.
 ///
 /// ### Using Navigation Destinations
 /// This can be done via using a standard SwiftUI `NavigationLink(value:label:)` view.
@@ -97,7 +94,12 @@ import SwiftUI
 ///
 /// > Important: When using `NavigationLink(value:label:)` the method will be ignored and SwiftUI will push
 /// the value onto the navigation stack as it would normally.
-public protocol NavigationDestination: Hashable, Equatable, Identifiable, View {
+public protocol NavigationDestination: Hashable, Equatable, Identifiable {
+
+    associatedtype Body: SwiftUI.View
+
+    /// Provides translation from type type to view body
+    @ViewBuilder @MainActor @preconcurrency var body: Self.Body { get }
 
     /// Can be overridden to define a specific presentation type for each destination.
     var method: NavigationMethod { get }
@@ -119,11 +121,6 @@ extension NavigationDestination {
         .auto
     }
 
-    /// Convenience function returns AnyView.
-    @MainActor public func asAnyView() -> AnyView {
-        AnyView(body)
-    }
-
 }
 
 extension NavigationDestination {
@@ -142,17 +139,20 @@ extension NavigationDestination {
 
 extension NavigationDestination {
 
-    /// Convenience functions return view.
-    @available(*, deprecated, message: "Use plain value instead e.g. 'MyDestination.page2' and not 'MyDestination.page2.view'.")
-    @MainActor @ViewBuilder var view: some View {
-        body
-    }
-
-    @available(*, deprecated, message: "Use plain value instead e.g. 'MyDestination.page2' and not 'MyDestination.page2()'.")
+    /// Convenience shortcut function returns view body as a SwiftUI view.
     @MainActor public func callAsFunction() -> some View {
         body
     }
 
+    /// Convenience function returns view body as a SwiftUI view.
+    @MainActor public func asView() -> some View {
+        body
+    }
+
+    /// Convenience function returns view body as AnyView.
+    @MainActor public func asAnyView() -> AnyView {
+        AnyView(body)
+    }
 }
 
 extension View {
@@ -184,7 +184,7 @@ private struct NavigationDestinationModifier<D: NavigationDestination>: ViewModi
     func body(content: Content) -> some View {
         content
             .navigationDestination(for: D.self) { destination in
-                destination
+                destination()
                     // propagates environment so destination continues to use the same navigator
                     // this is primarily needed when using NavigationSplitView
                     .environment(\.navigator, navigator)

@@ -120,11 +120,9 @@ internal struct NavigationPresentationModifiers: ViewModifier {
             .sheet(item: $state.sheet) { (destination) in
                 managedView(for: destination)
             }
-            #if os(iOS)
             .fullScreenCover(item: $state.cover) { (destination) in
                 managedView(for: destination)
             }
-            #endif
     }
 
     @ViewBuilder func managedView(for destination: AnyNavigationDestination) -> some View {

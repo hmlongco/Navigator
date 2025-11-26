@@ -47,11 +47,7 @@ extension Navigator {
         case .cover, .managedCover:
             guard state.cover?.id != destination.id else { return }
             log(.navigation(.presenting(destination.wrapped)))
-            #if os(iOS)
             state.cover = destination
-            #else
-            state.sheet = destination
-            #endif
         }
     }
 

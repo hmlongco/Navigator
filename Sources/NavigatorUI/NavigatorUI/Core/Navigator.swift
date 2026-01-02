@@ -84,7 +84,14 @@ nonisolated public struct Navigator: @unchecked Sendable {
         guard let state = NavigationState.current else { return nil }
         return Navigator(state: state)
     }
-    
+
+    /// Returns an array of any presented children.
+    public var children: [Navigator] {
+        state.children
+            .compactMap { $1.object }
+            .map { Navigator(state: $0) }
+    }
+
 }
 
 extension Navigator: Hashable {

@@ -1,5 +1,10 @@
 # Navigator Changelog
 
+### 1.4.5
+
+* Adds presentedSheetOrCover computed value to Navigator #89
+* Adds children computed value to Navigator, an array that makes it possible to walk the navigation tree
+
 ### 1.4.4
 
 * Fixes issue where returnToCheckpoint fails to dismiss #84, #86

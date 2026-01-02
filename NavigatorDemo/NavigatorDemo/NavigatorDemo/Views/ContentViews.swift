@@ -35,6 +35,9 @@ struct ContentSheetSection: View {
 
             Button("Present Sheet (Imperative)") {
                 navigator.navigate(to: HomeDestinations.presented1)
+                if let d = navigator.presentedSheetOrCover as? HomeDestinations, d == .presented1 {
+                    print("HomeDestinations.presented1 is the current destination")
+                }
             }
 
             Button("Present Sheet (Declarative)") {
@@ -49,6 +52,7 @@ struct ContentSheetSection: View {
 
             Button("Present Locked Cover (Imperative)") {
                 navigator.navigate(to: HomeDestinations.presented2)
+                navigator.returnToCheckpoint(KnownCheckpoints.home)
             }
 
             Button("Present Dismissible View") {

@@ -56,8 +56,8 @@ extension Navigator {
         state.isPresented
     }
 
-    /// Returns NavigationDestination of currently presented sheet or cover, if any.
-    public nonisolated var presentedSheetOrCover: (any NavigationDestination)? {
+    /// Returns NavigationDestination of sheet or cover we're currently presenting, if any.
+    public nonisolated var presentingSheetOrCover: (any NavigationDestination)? {
         (state.sheet ?? state.cover)?.wrapped as? NavigationDestination
     }
 }

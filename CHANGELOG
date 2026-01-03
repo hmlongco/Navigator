@@ -1,5 +1,9 @@
 # Navigator Changelog
 
+### 1.4.6
+
+* Tweak changes presentedSheetOrCover to presentingSheetOrCover to better match Apple's existing semantics
+
 ### 1.4.5
 
 * Adds presentedSheetOrCover computed value to Navigator #89

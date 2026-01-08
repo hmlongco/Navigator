@@ -35,7 +35,7 @@ struct ContentSheetSection: View {
 
             Button("Present Sheet (Imperative)") {
                 navigator.navigate(to: HomeDestinations.presented1)
-                if let d = navigator.presentedSheetOrCover as? HomeDestinations, d == .presented1 {
+                if let d = navigator.presentingSheetOrCover as? HomeDestinations, d == .presented1 {
                     print("HomeDestinations.presented1 is the current destination")
                 }
             }

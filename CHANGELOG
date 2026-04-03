@@ -1,5 +1,9 @@
 # Navigator Changelog
 
+### 2.0.1
+
+* Fix for AnyNavigationDestination encoding issue. #104
+
 ### 2.0.0
 
 * Navigator environment variable now uses Observation and is not depend on NavigationState ObservableObject

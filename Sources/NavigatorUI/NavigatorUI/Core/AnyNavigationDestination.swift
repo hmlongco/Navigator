@@ -143,14 +143,22 @@ extension AnyNavigationDestination: Codable {
     // convert data to NavigationDestination
     public init(from decoder: any Decoder) throws {
         var container = try decoder.unkeyedContainer()
+
         let typeName = try container.decode(String.self)
-        let type = _typeByName(typeName)
-        guard let type = type as? any Decodable.Type else {
-            throw DecodingError.dataCorruptedError(in: container, debugDescription: "\(typeName) is not decodable.")
+        guard let type = _typeByName(typeName) as? any Decodable.Type else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "\(typeName) is not decodable."
+            )
         }
-        guard let destination = (try container.decode(type)) as? any NavigationDestination else {
-            throw DecodingError.dataCorruptedError(in: container, debugDescription: "\(typeName) is not decodable.")
+
+        guard let destination = try container.decode(type) as? any NavigationDestination else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "\(typeName) is not a NavigationDestination."
+            )
         }
+
         let method = try container.decode(NavigationMethod.self)
         self.init(wrapped: destination, method: method)
     }
@@ -158,12 +166,18 @@ extension AnyNavigationDestination: Codable {
     // convert NavigationDestination to storable data
     public func encode(to encoder: Encoder) throws {
         var container = encoder.unkeyedContainer()
+
         try container.encode(_mangledTypeName(type(of: wrapped)))
+
         guard let element = wrapped as? any Encodable else {
-            let context = EncodingError.Context(codingPath: container.codingPath, debugDescription: "\(type(of: wrapped)) is not encodable.")
+            let context = EncodingError.Context(
+                codingPath: container.codingPath,
+                debugDescription: "\(type(of: wrapped)) is not encodable."
+            )
             throw EncodingError.invalidValue(wrapped, context)
         }
-        try container.encode(element)
-    }
 
+        try container.encode(element)
+        try container.encode(method)
+    }
 }

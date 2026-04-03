@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(swift build:*)",
-      "Bash(swift test:*)"
+      "Bash(swift test:*)",
+      "Bash(swift:*)",
+      "Bash(wc -l /Users/michael/Dropbox/Projects/iOS/OSS/Navigator/Navigator/Sources/NavigatorUI/NavigatorUI/**/*.swift)"
     ]
   }
 }

@@ -36,16 +36,16 @@ RootTabView()
     .navigationRoot(navigator)
 ```
 
-Navigator looks up the provider by the destination’s type; when a `SharedDestinations` value is pushed or presented, it asks the provider for the view. The app sees all modules and can return the correct view for each case.
+Navigator looks up the provider by the destination's type; when a `SharedDestinations` value is pushed or presented, it asks the provider for the view. The app sees all modules and can return the correct view for each case.
 
 ## NavigationProvidedView and placeholders
 
-- **NavigationProvidedView(for: self)** is used internally by the default `NavigationProvidedDestination` body. It asks the navigator (root) for a view for that destination; if none is registered, it can show a **placeholder** or (in debug) a “missing provider” message.
+- **NavigationProvidedView(for: self)** is used internally by the default `NavigationProvidedDestination` body. It asks the navigator (root) for a view for that destination; if none is registered, it can show a **placeholder** or (in debug) a "missing provider" message.
 - You can use **NavigationProvidedView(for: destination) { placeholderView }** when you want a custom placeholder when no provider is registered (e.g. a mock or loading view).
 
 ## Single-case provision
 
-A destination enum can mix provided and non-provided cases: implement **body** with a switch, and for the “external” case use **NavigationProvidedView(for: self)** or **NavigationProvidedView(for: Self.external) { placeholder }**. Register with **onNavigationProvidedView(YourDestinations.self)** and in the switch return a view only for the external case; for other cases return `EmptyView()` to satisfy the compiler (they are handled in the body switch).
+A destination enum can mix provided and non-provided cases: implement **body** with a switch, and for the "external" case use **NavigationProvidedView(for: self)** or **NavigationProvidedView(for: Self.external) { placeholder }**. Register with **onNavigationProvidedView(YourDestinations.self)** and in the switch return a view only for the external case; for other cases return `EmptyView()` to satisfy the compiler (they are handled in the body switch).
 
 ## NavigationViewProviding (alternative)
 

@@ -37,7 +37,7 @@ Only **one** receiver per type should consume a value; duplicate receivers for t
 ## Routes vs destinations
 
 - **Destination** — A single screen: one Navigator pushes or presents one view (one value).
-- **Route** — A high-level “place” in the app (e.g. “edit profile photo”) that may require a **sequence** of actions: switch tab, push profile, present photo. A route is implemented by sending that sequence.
+- **Route** — A high-level "place" in the app (e.g. "edit profile photo") that may require a **sequence** of actions: switch tab, push profile, present photo. A route is implemented by sending that sequence.
 
 Define **routes** as an enum conforming to **NavigationRoutes** (e.g. `enum KnownRoutes: NavigationRoutes`). Implement **NavigationRouteHandling** with a type that maps each route to a **send** sequence. Install with **`.onNavigationRoute(YourRouter())`**. Trigger with **`navigator.perform(route: KnownRoutes.profilePhoto)`**. The button (or URL handler) only knows the route; the router knows the sequence. Use the **same** router for deep links and in-app navigation so URL parsing just calls **`perform(route:)`**.
 

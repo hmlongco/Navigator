@@ -18,7 +18,7 @@ Apply this skill when the user:
 
 ## Core conventions
 
-- **Destinations**: Enums conforming to `NavigationDestination` (Hashable + View). Provide a `body` that returns the correct view for each case; use associated values for parameters. Do not use `NavigationLink(value:label:)` or `NavigationLink(destination:label:)` for destination-driven navigation when using Navigator’s no-registration flow.
+- **Destinations**: Enums conforming to `NavigationDestination` (Hashable + View). Provide a `body` that returns the correct view for each case; use associated values for parameters. Do not use `NavigationLink(value:label:)` or `NavigationLink(destination:label:)` for destination-driven navigation when using Navigator's no-registration flow.
 - **Links**: Use **`NavigationLink(to: SomeDestination.case, label: { ... })`**. Navigator wraps the value internally; no per-type `navigationDestination(for: MyType.self)` registration is required.
 - **Stack**: Use **`ManagedNavigationStack { ... }`** where a `NavigationStack` would go. It provides the `Navigator` in the environment and a single internal registration for all `NavigationDestination` types.
 - **Navigator access**: Use **`@Environment(\.navigator) var navigator`**. Use the navigator for the *current* stack (from the closure of `ManagedNavigationStack` or from a child view). Do not assume the environment navigator is the root when inside a tab or presented view—it is the navigator for that stack.
@@ -34,19 +34,19 @@ Apply this skill when the user:
 
 ## Topic index (reference docs)
 
-For detailed explanations, code samples, and “why” notes, use the reference files:
+For detailed explanations, code samples, and "why" notes, use the reference files:
 
-- **[skills/Destinations.md](reference/Destinations.md)** — Defining NavigationDestination enums, body, associated values, delegation to a private View for environment/DI, destination-as-view in sheets, coordination pattern, external provided views.
-- **[skills/Navigation.md](reference/Navigation.md)** — ManagedNavigationStack, why no registration is needed (AnyNavigationDestination), NavigationLink(to:label), imperative and declarative navigation, NavigationMethod, modular cards/tabs.
-- **[skills/Dismissible.md](reference/Dismissible.md)** — Navigation tree, dismiss vs dismissPresentedViews vs dismissAnyChildren vs dismissAny, navigationLocked, state-driven modifiers, wrapping custom sheets/covers.
-- **[skills/Checkpoints.md](reference/Checkpoints.md)** — Defining and establishing checkpoints, returning and returning with value, state-driven return, state restoration, coordinator pattern.
-- **[skills/DeepLinking.md](reference/DeepLinking.md)** — send(values:), onNavigationReceive and resume types, routes vs destinations, NavigationRouteHandling, perform(route:), one router for URL and in-app.
-- **[skills/ProvidedDestinations.md](reference/ProvidedDestinations.md)** — NavigationProvidedDestination, onNavigationProvidedView, NavigationProvidedView and placeholders, modular apps.
+- **[Destinations](reference/Destinations.md)** — Defining NavigationDestination enums, body, associated values, delegation to a private View for environment/DI, destination-as-view in sheets, coordination pattern, external provided views.
+- **[Navigation](reference/Navigation.md)** — ManagedNavigationStack, why no registration is needed (AnyNavigationDestination), NavigationLink(to:label), imperative and declarative navigation, NavigationMethod, modular cards/tabs.
+- **[Dismissible](reference/Dismissible.md)** — Navigation tree, dismiss vs dismissPresentedViews vs dismissAnyChildren vs dismissAny, navigationLocked, state-driven modifiers, wrapping custom sheets/covers.
+- **[Checkpoints](reference/Checkpoints.md)** — Defining and establishing checkpoints, returning and returning with value, state-driven return, state restoration, coordinator pattern.
+- **[Deep linking](reference/DeepLinking.md)** — send(values:), onNavigationReceive and resume types, routes vs destinations, NavigationRouteHandling, perform(route:), one router for URL and in-app.
+- **[Provided destinations](reference/ProvidedDestinations.md)** — NavigationProvidedDestination, onNavigationProvidedView, NavigationProvidedView and placeholders, modular apps.
 
-## Do / don’t
+## Do / don't
 
-- **Do**: Use `NavigationLink(to: Destination.case)`; use `ManagedNavigationStack`; use checkpoints for “return to this place”; use send/receive for deep linking and tab switching; wrap custom presented views in `ManagedPresentationView` or `.managedPresentationView()` when Navigator should manage them.
-- **Don’t**: Use `NavigationLink(destination:label:)`; use `NavigationLink(value:label:)` for destination types when aiming for no-registration flow (unless you explicitly register); present sheets or covers without wrapping when Navigator needs to dismiss or deep-link into the app.
+- **Do**: Use `NavigationLink(to: Destination.case)`; use `ManagedNavigationStack`; use checkpoints for "return to this place"; use send/receive for deep linking and tab switching; wrap custom presented views in `ManagedPresentationView` or `.managedPresentationView()` when Navigator should manage them.
+- **Don't**: Use `NavigationLink(destination:label:)`; use `NavigationLink(value:label:)` for destination types when aiming for no-registration flow (unless you explicitly register); present sheets or covers without wrapping when Navigator needs to dismiss or deep-link into the app.
 
 ## Root setup
 

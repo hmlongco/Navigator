@@ -2,7 +2,8 @@
 
 ### 2.0.1
 
-* Fix for AnyNavigationDestination encoding issue. #104
+* Fix for AnyNavigationDestination encoding issue #104
+* Updates the AI skills directory structure to be Claude Code compatible
 
 ### 2.0.0
 

@@ -1,6 +1,6 @@
 # Destinations (reference)
 
-Navigation in Navigator is driven by **enumerated destination values** that conform to the `NavigationDestination` protocol. The protocol requires `Hashable`, `Equatable`, `Identifiable`, and `View`; the enum’s `body` provides the view for each case.
+Navigation in Navigator is driven by **enumerated destination values** that conform to the `NavigationDestination` protocol. The protocol requires `Hashable`, `Equatable`, `Identifiable`, and `View`; the enum's `body` provides the view for each case.
 
 ## Protocol and enum body
 
@@ -32,7 +32,7 @@ nonisolated public enum HomeDestinations: NavigationDestination {
 
 ## Environment and dependencies
 
-When views need **environment values** or **dependency injection**, do not put that logic in the enum’s `body` (enums have limited access to environment). Instead, **delegate to a private SwiftUI View** that has full access to `@Environment`:
+When views need **environment values** or **dependency injection**, do not put that logic in the enum's `body` (enums have limited access to environment). Instead, **delegate to a private SwiftUI View** that has full access to `@Environment`:
 
 1. In the enum: `public var body: some View { HomeDestinationsView(destination: self) }`
 2. Implement a private `HomeDestinationsView: View` that takes `let destination: HomeDestinations` and `@Environment(\.homeDependencies) var resolver` (or similar), then switch on `destination` and build views using `resolver`.
@@ -51,11 +51,11 @@ Because the enum conforms to View, you can use it directly in a sheet or fullScr
 }
 ```
 
-Set `present = .details(account)` to present. If the sheet is presented **outside** Navigator’s `navigate(to:)`, wrap the content in **ManagedPresentationView** or **.managedPresentationView()** so Navigator can dismiss it (see [Dismissible.md](Dismissible.md)).
+Set `present = .details(account)` to present. If the sheet is presented **outside** Navigator's `navigate(to:)`, wrap the content in **ManagedPresentationView** or **.managedPresentationView()** so Navigator can dismiss it (see [Dismissible.md](Dismissible.md)).
 
 ## Using an explicit destination as root content
 
-You can use a destination value as the initial content of a stack (e.g. “home” as the root screen):
+You can use a destination value as the initial content of a stack (e.g. "home" as the root screen):
 
 ```swift
 ManagedNavigationStack {
@@ -67,8 +67,8 @@ The enum is a View, so it renders like any other view. No need for a separate ro
 
 ## External / cross-module views
 
-When a feature needs a view provided by another module (e.g. “external” screen), the destination view can obtain it from a dependency resolver in the environment (e.g. `resolver.externalView()`). The app composes a resolver that returns the appropriate view (e.g. from another module’s destination). The feature module never imports the other module; it only depends on the resolver protocol. Alternatively use **NavigationProvidedDestination** and **onNavigationProvidedView** for full modular provision (see [ProvidedDestinations.md](ProvidedDestinations.md)).
+When a feature needs a view provided by another module (e.g. "external" screen), the destination view can obtain it from a dependency resolver in the environment (e.g. `resolver.externalView()`). The app composes a resolver that returns the appropriate view (e.g. from another module's destination). The feature module never imports the other module; it only depends on the resolver protocol. Alternatively use **NavigationProvidedDestination** and **onNavigationProvidedView** for full modular provision (see [ProvidedDestinations.md](ProvidedDestinations.md)).
 
 ## Coordination pattern
 
-Destinations support the coordination pattern: callers specify *where* to go (the enum case); they do not specify *which* view type or how it is built. The destination enum owns that knowledge. Use `NavigationLink(to: Destination.case)` or `navigator.navigate(to: Destination.case)`; the destination’s `body` supplies the view.
+Destinations support the coordination pattern: callers specify *where* to go (the enum case); they do not specify *which* view type or how it is built. The destination enum owns that knowledge. Use `NavigationLink(to: Destination.case)` or `navigator.navigate(to: Destination.case)`; the destination's `body` supplies the view.

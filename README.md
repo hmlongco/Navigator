@@ -452,6 +452,17 @@ Then `import NavigatorUI` into your project where needed.
 
 Note that the current version of Navigator requires Swift 5.10 minimum and that the minimum version of iOS currently supported with this release is iOS 16.
 
+## AI Skills
+
+Navigator includes a [Claude Code](https://claude.ai/code) skill that gives AI assistants detailed knowledge of Navigator's patterns — destinations, navigation, checkpoints, deep linking, dismissible views, and provided destinations. The skill lives in `.claude/skills/swiftui-navigation-navigator/` in this repository. To install it in your own project, run the following from your project root (the command creates `.claude/skills/` if it doesn't exist):
+
+```bash
+git clone --depth 1 https://github.com/hmlongco/Navigator /tmp/Navigator && \
+  mkdir -p .claude/skills && \
+  cp -r /tmp/Navigator/.claude/skills/swiftui-navigation-navigator .claude/skills/ && \
+  rm -rf /tmp/Navigator
+```
+
 ## Discussion Forum
 
 Discussion and comments on Navigator can be found in [Discussions](https://github.com/hmlongco/Navigator/discussions). Go there if you have something to say or if you want to stay up to date.

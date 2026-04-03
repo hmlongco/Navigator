@@ -10,11 +10,11 @@ Use **`ManagedNavigationStack { ... }`** wherever you would use a `NavigationSta
 - Injects the **Navigator** into the environment for that stack.
 - Registers **one** type internally—`AnyNavigationDestination`—so all destination types can be pushed without per-type registration.
 
-Access the navigator from the content closure or from any child view via **`@Environment(\.navigator) var navigator`**. That navigator is the one managing *that* stack (e.g. the current tab’s stack), not necessarily the root.
+Access the navigator from the content closure or from any child view via **`@Environment(\.navigator) var navigator`**. That navigator is the one managing *that* stack (e.g. the current tab's stack), not necessarily the root.
 
 ## Why no registration is needed
 
-SwiftUI’s `NavigationLink(value:label:)` requires the value’s type to be registered with `navigationDestination(for: Type.self)`. Navigator avoids that by:
+SwiftUI's `NavigationLink(value:label:)` requires the value's type to be registered with `navigationDestination(for: Type.self)`. Navigator avoids that by:
 
 1. Registering **only** `AnyNavigationDestination` in every ManagedNavigationStack.
 2. Providing **`NavigationLink(to: label:)`**, which wraps your destination in `AnyNavigationDestination` and uses `NavigationLink(value: label:)` with that wrapper. So SwiftUI only ever sees one type.
@@ -23,11 +23,11 @@ Therefore: use **`NavigationLink(to: HomeDestinations.page3) { ... }`**, not `Na
 
 ## Imperative navigation
 
-- **`navigator.navigate(to: destination)`** — Navigate using the destination’s **NavigationMethod** (push, sheet, cover, etc.).
+- **`navigator.navigate(to: destination)`** — Navigate using the destination's **NavigationMethod** (push, sheet, cover, etc.).
 - **`navigator.push(destination)`** — Push onto the current stack (ignores method).
 - **`navigator.navigate(to: destination, method: .sheet)`** — Override method (e.g. `.sheet`, `.managedSheet`, `.cover`, `.managedCover`, `.send`).
 
-Use the navigator from the **current** stack’s environment (the one for the ManagedNavigationStack that contains the view).
+Use the navigator from the **current** stack's environment (the one for the ManagedNavigationStack that contains the view).
 
 ## Declarative navigation
 

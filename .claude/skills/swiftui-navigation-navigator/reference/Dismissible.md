@@ -9,20 +9,20 @@ Navigator builds a tree of **Navigators**:
 - **Root**: The application root Navigator (from `.navigationRoot(navigator)`).
 - **Children**: Each **ManagedNavigationStack** (e.g. per tab) is a child; each **ManagedPresentationView** (or stack presented via Navigator) is a child of the navigator that presented it.
 
-So: Root → Tab1 stack, Tab2 stack, Tab3 stack → and if Tab3 presents a sheet, that sheet’s navigator is a child of Tab3’s navigator. The tree can be walked to dismiss from parent or root.
+So: Root → Tab1 stack, Tab2 stack, Tab3 stack → and if Tab3 presents a sheet, that sheet's navigator is a child of Tab3's navigator. The tree can be walked to dismiss from parent or root.
 
 ## Four dismiss operations
 
-1. **`navigator.dismiss()`**  
+1. **`navigator.dismiss()`**
    Dismisses the **currently presented** view that *this* Navigator is managing. Use from **inside** that presented view. It does **not** pop the navigation path; it only dismisses the sheet/cover that this navigator presented.
 
-2. **`navigator.dismissPresentedViews()`**  
+2. **`navigator.dismissPresentedViews()`**
    Dismisses any sheet or fullScreenCover that *this* Navigator presented via `navigate(to:)`. Use from the **parent** that owns this navigator.
 
-3. **`navigator.dismissAnyChildren()`**  
+3. **`navigator.dismissAnyChildren()`**
    Walks the tree from this Navigator and dismisses every **ManagedNavigationStack** or **ManagedPresentationView** that is a descendant. Use from a **parent** to clear all children. Returns `true` if anything was dismissed.
 
-4. **`navigator.dismissAny()`**  
+4. **`navigator.dismissAny()`**
    Goes to the **root** and dismisses *all* presented stacks and presentation views in the entire tree. Used for deep linking (clear everything, then navigate to the target). Returns `true` if anything was dismissed. **Can throw** if navigation is locked (see below).
 
 ## Locking navigation
@@ -48,8 +48,8 @@ If you present a sheet or cover **yourself** (e.g. `.sheet(item: $item) { ... }`
 - **`MyView().managedPresentationView()`** — Same as above, modifier style.
 - **`ManagedNavigationStack { MyView() }`** — Use when the sheet needs its own navigation stack; it also registers and is dismissible.
 
-Failure to wrap custom presentations can break deep linking and “dismiss any” behavior.
+Failure to wrap custom presentations can break deep linking and "dismiss any" behavior.
 
 ## Checkpoints and dismissible
 
-Returning to a **checkpoint** uses dismissible under the hood: Navigator finds the checkpoint’s navigator, calls **dismissAnyChildren()** (or equivalent), then **pop(to: index)**. So checkpoints depend on the tree and dismissible infrastructure. From deep in the tree, prefer **returnToCheckpoint** over manual dismiss so you don’t depend on exact stack structure.
+Returning to a **checkpoint** uses dismissible under the hood: Navigator finds the checkpoint's navigator, calls **dismissAnyChildren()** (or equivalent), then **pop(to: index)**. So checkpoints depend on the tree and dismissible infrastructure. From deep in the tree, prefer **returnToCheckpoint** over manual dismiss so you don't depend on exact stack structure.

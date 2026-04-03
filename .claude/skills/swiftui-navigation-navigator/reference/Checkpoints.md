@@ -4,9 +4,9 @@
 
 ## Why checkpoints
 
-- **pop()** and **dismiss()** assume the caller knows how many levels to pop or which presented view to dismiss. That couples code to the app’s structure.
+- **pop()** and **dismiss()** assume the caller knows how many levels to pop or which presented view to dismiss. That couples code to the app's structure.
 - Passing **bindings or callbacks** down the tree works but is cumbersome and hard to maintain.
-- **Checkpoints** let any view say “return to the place named X”; Navigator finds that place in the tree and dismisses/pops back to it. The caller does not need to know if they were pushed or presented.
+- **Checkpoints** let any view say "return to the place named X"; Navigator finds that place in the tree and dismisses/pops back to it. The caller does not need to know if they were pushed or presented.
 
 ## Defining a checkpoint
 
@@ -33,12 +33,12 @@ ManagedNavigationStack(scene: "home") {
 }
 ```
 
-That view is now the named target for “return to home.”
+That view is now the named target for "return to home."
 
 ## Returning to a checkpoint
 
 - **`navigator.returnToCheckpoint(KnownCheckpoints.home)`** — Dismisses any presented views and pops back to the view that has `.navigationCheckpoint(KnownCheckpoints.home)`.
-- **`navigator.canReturnToCheckpoint(KnownCheckpoints.home)`** — Use to enable/disable a “return” button (e.g. `.disabled(!navigator.canReturnToCheckpoint(KnownCheckpoints.home))`).
+- **`navigator.canReturnToCheckpoint(KnownCheckpoints.home)`** — Use to enable/disable a "return" button (e.g. `.disabled(!navigator.canReturnToCheckpoint(KnownCheckpoints.home))`).
 
 Return can be **state-driven**: **`.navigationReturnToCheckpoint(trigger: $returnToHome, checkpoint: KnownCheckpoints.home)`**. When the binding becomes true, Navigator performs the return and resets the trigger.
 
@@ -57,4 +57,4 @@ Checkpoints work well with **state restoration** because they are identified by 
 
 ## Coordinator pattern
 
-Views that want to “go back to home” (or any named place) only need to know the checkpoint name. They do not need to know whether they were pushed or presented, or how deep they are. That separation is the coordinator-style benefit of checkpoints.
+Views that want to "go back to home" (or any named place) only need to know the checkpoint name. They do not need to know whether they were pushed or presented, or how deep they are. That separation is the coordinator-style benefit of checkpoints.

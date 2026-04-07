@@ -85,8 +85,8 @@ extension View {
     /// }
     /// ```
     /// > Warning: Failure to tag presented views as such can lead to inconsistent deep linking and navigation behavior.
-    public func managedPresentationView() -> some View {
-        ManagedPresentationView {
+    public func managedPresentationView(name: String? = nil) -> some View {
+        ManagedPresentationView(name: name) {
             self
         }
     }

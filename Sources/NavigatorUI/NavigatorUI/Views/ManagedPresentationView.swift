@@ -56,9 +56,9 @@ public struct ManagedPresentationView<Content: View>: View {
     ///     }
     /// }
     /// ```
-    public init(@ViewBuilder content: () -> Content) {
+    public init(name: String? = nil, @ViewBuilder content: () -> Content) {
         self.content = content()
-        self._navigator = .init(wrappedValue: Navigator(owner: .presenter, name: nil))
+        self._navigator = .init(wrappedValue: Navigator(owner: .presenter, name: name))
     }
 
     /// The view content configured with a dedicated `Navigator` and

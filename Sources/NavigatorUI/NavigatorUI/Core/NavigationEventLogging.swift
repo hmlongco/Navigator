@@ -31,7 +31,7 @@ extension Navigator {
         guard verbosity.rawValue >= configuration.verbosity.rawValue else {
             return
         }
-        logger(.init(verbosity: .info, navigator: id, event: event, timestamp: Date()))
+        logger(.init(verbosity: .info, navigator: id, navigatorName: name, event: event, timestamp: Date()))
     }
 }
 
@@ -44,12 +44,17 @@ nonisolated public struct NavigationEvent: CustomStringConvertible {
 
     let verbosity: Verbosity
     let navigator: UUID
+    let navigatorName: String?
     let event: Event
     let timestamp: Date
 
     /// A human-readable description suitable for logging.
     public var description: String {
-        "Navigator \(navigator) \(event)"
+        if let navigatorName {
+            "Navigator \(navigator) (\(navigatorName)) \(event)"
+        } else {
+            "Navigator \(navigator) \(event)"
+        }
     }
 
 }
@@ -103,12 +108,32 @@ extension NavigationEvent {
         }
 
         /// Lifecycle events for a given navigator instance.
-        nonisolated public enum LifecycleEvent {
+        nonisolated public enum LifecycleEvent: CustomStringConvertible {
             case configured
             case intialized
-            case adding(UUID)
-            case removing(UUID)
+            case adding(UUID, name: String?)
+            case removing(UUID, name: String?)
             case `deinit`
+
+            nonisolated public var description: String {
+                switch self {
+                case .configured: "configured"
+                case .intialized: "intialized"
+                case .adding(let id, let name):
+                    if let name {
+                        "adding \(id) (\(name))"
+                    } else {
+                        "adding \(id)"
+                    }
+                case .removing(let id, let name):
+                    if let name {
+                        "removing \(id) (\(name))"
+                    } else {
+                        "removing \(id)"
+                    }
+                case .deinit: "deinit"
+                }
+            }
         }
 
         /// Events related to presenting and popping navigation destinations.

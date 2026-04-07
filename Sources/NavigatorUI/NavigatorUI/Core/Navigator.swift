@@ -227,12 +227,12 @@ public final class Navigator: @unchecked Sendable {
         child.navigationModifierInherits = navigationModifierInherits
         child.presentationModifier = presentationModifierInherits ? presentationModifier : nil
         child.presentationModifierInherits = presentationModifierInherits
-        log(.lifecycle(.adding(child.id)))
+        log(.lifecycle(.adding(child.id, name: child.name)))
     }
 
     /// Removes a child navigator from a parent.
     internal func removeChild(_ child: Navigator) {
-        log(.lifecycle(.removing(child.id)))
+        log(.lifecycle(.removing(child.id, name: child.name)))
         _children.removeValue(forKey: child.id)
         if child.isPresented {
             self.isPresenting = false

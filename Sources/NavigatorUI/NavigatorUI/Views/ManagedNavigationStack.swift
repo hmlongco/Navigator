@@ -55,7 +55,7 @@ public struct ManagedNavigationStack<Content: View>: View {
     }
 
     /// Initializes named NavigationStack.
-    public init(name: String, @ViewBuilder content: @escaping () -> Content) {
+    public init(name: String?, @ViewBuilder content: @escaping () -> Content) {
         self.name = name
         self.content = { _ in content() }
         self.isScene = false

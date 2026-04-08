@@ -115,9 +115,9 @@ internal struct NavigationPresentationModifiers: ViewModifier {
     }
 
     @ViewBuilder func managedView(for destination: AnyNavigationDestination) -> some View {
-        ManagedPresentationView {
+        ManagedPresentationView(name: destination.presentationName) {
             if destination.method.requiresNavigationStack {
-                ManagedNavigationStack {
+                ManagedNavigationStack(name: destination.presentationName) {
                     navigator.mappedPresentationView(for: destination.wrapped)
                 }
             } else {

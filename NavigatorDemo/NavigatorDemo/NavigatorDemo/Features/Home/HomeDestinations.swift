@@ -137,7 +137,18 @@ extension HomeDestinations {
             .managedSheet
         }
     }
-    
+
+    // not required but shows possibilities in providing custom navigator names for presented navigators
+    public var presentationName: String? {
+        switch self {
+        case .home, .page2, .page3, .pageN, .mapped, .external, .external2, .external3:
+            nil
+        case .presented1, .halfSheet1, .halfSheet2:
+            "sheet"
+        case .presented2:
+            "cover"
+        }
+    }
 }
 
 // convenience

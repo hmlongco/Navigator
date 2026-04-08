@@ -19,7 +19,12 @@ public struct AnyNavigationDestination {
 
     /// The navigation method used to present the wrapped destination.
     public var method: NavigationMethod
-    
+
+    /// Defines a specific navigator name for presented sheets and covers.
+    @MainActor public var presentationName: String? {
+        wrapped.presentationName
+    }
+
     @MainActor public var detents: Set<PresentationDetent> { wrapped.detents }
     @MainActor public var selectedDetent: PresentationDetent? { wrapped.selectedDetent }
 

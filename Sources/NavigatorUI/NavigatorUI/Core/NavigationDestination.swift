@@ -124,6 +124,9 @@ import SwiftUI
     /// If nil, the system will choose the default detent.
     var selectedDetent: PresentationDetent? { get }
 
+    /// Can be overridden to define a specific navigator name for presented sheets and covers.
+    var presentationName: String? { get }
+
 }
 
 extension NavigationDestination {
@@ -145,6 +148,11 @@ extension NavigationDestination {
     
     /// Default selected detent (nil = system default).
     public var selectedDetent: PresentationDetent? {
+        nil
+    }
+
+    /// Can be overridden to define a specific navigator name for presented sheets and covers.
+    @MainActor public var presentationName: String? {
         nil
     }
 

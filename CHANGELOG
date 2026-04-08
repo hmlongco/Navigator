@@ -1,5 +1,10 @@
 # Navigator Changelog
 
+### 2.0.2
+
+* Add navigator name for logging and ManagedPresentationView #105
+* Add presentationName property to NavigationDestination protocol to better support #105
+
 ### 2.0.1
 
 * Fix for AnyNavigationDestination encoding issue #104

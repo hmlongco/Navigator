@@ -452,6 +452,14 @@ Then `import NavigatorUI` into your project where needed.
 
 Note that the current version of Navigator requires Swift 5.10 minimum and that the minimum version of iOS currently supported with this release is iOS 16.
 
+## Demo Applications
+
+Navigator includes a test bed application, NavigatorDemo, that's used to test basic functionality and ensure that Navigator's various features are working together properly.
+
+MovieDemo, on the other hand, is a new TMDB movie browsing application that's been built to showcase how to use [Factory](https://github.com/hmlongco/Factory) and [Navigator](https://github.com/hmlongco/Navigator) in a modern, modular iOS application.
+
+It can be obtained here: [MovieDemo](https://github.com/hmlongco/MovieDemo).
+
 ## AI Skills
 
 Navigator includes a [Claude Code](https://claude.ai/code) skill that gives AI assistants detailed knowledge of Navigator's patterns — destinations, navigation, checkpoints, deep linking, dismissible views, and provided destinations. The skill lives in `.claude/skills/swiftui-navigation-navigator/` in this repository. To install it in your own project, run the following from your project root (the command creates `.claude/skills/` if it doesn't exist):
@@ -489,11 +497,12 @@ Michael was also one of Google's [Open Source Peer Reward](https://opensource.go
 
 ## Additional Resources
 
+* [Navigator Documentation](https://hmlongco.github.io/Navigator/documentation/navigatorui/)
+* [MovieDemo: A modern, modular iOS application that uses Factory and Navigator](https://github.com/hmlongco/MovieDemo)
 * [Medium: Advanced Navigation Destinations in SwiftUI](https://michaellong.medium.com/advanced-navigation-destinations-in-swiftui-05c3e659f64f?sk=030440d95749f5adc6d2b43ca26baee1)
 * [Medium: Advanced Deep Linking in SwiftUI](https://michaellong.medium.com/advanced-deep-linking-in-swiftui-c0085be83e7c?sk=118d08a22cb02b21dccf9235d78dc74f)
 * [Medium: Navigation Checkpoints in SwiftUI](https://michaellong.medium.com/navigation-checkpoints-in-swiftui-345270388240?sk=a7802f5351fcb3b5cfced714d0bcfaec)
 * [Medium: SwiftUI Navigation With Dismissible](https://michaellong.medium.com/swiftui-navigation-with-dismissible-8de3cab72a4e?sk=dcb743fbb90d59c5775fed33725958b9)
 * [Medium: Eliminating Navigation Registrations in SwiftUI](https://medium.com/the-swift-cooperative/swiftui-eliminating-navigation-registration-7339691c2887?sk=583c8b1fdc7945501f707ea94020737f)
 * [Medium: Now Previewing Navigator!](https://michaellong.medium.com/now-previewing-navigator-faebf290a1da?sk=88d3ff52057cf0a948279e6be4a15f75)
-* [Navigator Documentation](https://hmlongco.github.io/Navigator/documentation/navigatorui/)
 * [Factory](https://hmlongco.github.io/Factory/)

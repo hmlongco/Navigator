@@ -1,18 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Commands
-
-```bash
-swift build
-swift test
-swift test --filter NavigatorUITests/NavigatorCoreTests/testNavigatorInitialization
-./docs.sh   # generate DocC documentation → docs/
-```
-
-## Architecture
-
 Navigator is a SwiftUI navigation framework built on `NavigationStack`. It eliminates manual `navigationDestination` registrations and supports deep linking, checkpoints, and modular app patterns.
 
 **Platforms:** iOS 17+, macOS 14+, tvOS 17+, watchOS 10+, visionOS 1+
@@ -48,3 +35,12 @@ Tests use Apple's Testing framework (not XCTest). `Tests/NavigatorUITests/Helper
 ## Skill
 
 A Claude skill with detailed pattern references is at `.claude/skills/swiftui-navigation-navigator/`. Import `SKILL.md` and the `reference/` subfolder into your project's `.claude/skills/` directory to get inline guidance on destinations, navigation, checkpoints, deep linking, dismissible views, and provided destinations.
+
+## Commands
+
+```bash
+swift build
+swift test
+swift test --filter NavigatorUITests/NavigatorCoreTests/testNavigatorInitialization
+./docs.sh   # generate DocC documentation → docs/
+```

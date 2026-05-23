@@ -444,6 +444,8 @@ Also see Additional Resources section below.
 
 ## Installation
 
+### Swift Package Manager
+
 Navigator supports the Swift Package Manager.
 
 Or download the source files and add the Navigator folder to your project.
@@ -451,6 +453,28 @@ Or download the source files and add the Navigator folder to your project.
 Then `import NavigatorUI` into your project where needed.
 
 Note that the current version of Navigator requires Swift 5.10 minimum and that the minimum version of iOS currently supported with this release is iOS 16.
+
+### CocoaPods
+
+Navigator is also available through CocoaPods. Add the following to your `Podfile`:
+
+```ruby
+pod 'NavigatorUI', '~> 2.0'
+```
+
+Then run:
+
+```bash
+pod install
+```
+
+Import the module where needed:
+
+```swift
+import NavigatorUI
+```
+
+**Requirements:** iOS 17+, macOS 14+, tvOS 17+, watchOS 10+, visionOS 1.0, Swift 5.10+.
 
 ## Demo Applications
 

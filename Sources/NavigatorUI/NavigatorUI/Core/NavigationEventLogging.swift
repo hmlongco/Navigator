@@ -113,6 +113,7 @@ extension NavigationEvent {
             case intialized
             case adding(UUID, name: String?)
             case removing(UUID, name: String?)
+            case current(UUID, name: String?)
             case `deinit`
 
             nonisolated public var description: String {
@@ -130,6 +131,12 @@ extension NavigationEvent {
                         "removing \(id) (\(name))"
                     } else {
                         "removing \(id)"
+                    }
+                case .current(let id, let name):
+                    if let name {
+                        "current \(id) (\(name))"
+                    } else {
+                        "current \(id)"
                     }
                 case .deinit: "deinit"
                 }

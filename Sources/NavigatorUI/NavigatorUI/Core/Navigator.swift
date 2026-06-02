@@ -156,7 +156,15 @@ public final class Navigator: @unchecked Sendable {
     // MARK: - Static Properties
 
     /// The currently active navigator
-    nonisolated(unsafe) public static weak var current: Navigator?
+    public private(set) static weak var current: Navigator?
+
+    internal static func set(current: Navigator?) {
+        guard let current, Navigator.current?.id != current.id else {
+            return
+        }
+        current.log(.lifecycle(.current(current.id, name: current.name)))
+        Navigator.current = current
+    }
 
     // MARK: - Computed Properties
 
@@ -176,6 +184,11 @@ public final class Navigator: @unchecked Sendable {
             .compactMap { $1.object }
     }
 
+    /// Returns navigator's name or distinct uuid
+    public var nameOrId: String {
+        name ?? id.uuidString
+    }
+
     // MARK: - Lifecycle
 
     /// Allows public initialization of root Navigators.
@@ -183,14 +196,13 @@ public final class Navigator: @unchecked Sendable {
         self.name = "root"
         self.configuration = configuration
         log(.lifecycle(.configured))
+        Navigator.current = self
     }
 
     /// Internal initializer used by ManagedNavigationStack and navigationDismissible modifiers.
     internal init(owner: Owner, name: String?) {
         self.owner = owner
         self.name = name
-        // set as current
-        Navigator.current = self
     }
 
     /// Sentinel code removes child from parent when Navigator is dismissed or deallocated.
@@ -200,7 +212,6 @@ public final class Navigator: @unchecked Sendable {
         MainActor.assumeIsolated {
             child.log(.lifecycle(.deinit))
             parent?.removeChild(child)
-            Navigator.current = parent
         }
     }
 
@@ -216,6 +227,7 @@ public final class Navigator: @unchecked Sendable {
         guard !_children.keys.contains(child.id) else {
             return
         }
+        log(.lifecycle(.adding(child.id, name: child.name)))
         _children[child.id] = WeakNavigator(object: child)
         child.configuration = configuration
         child.parent = self
@@ -227,17 +239,21 @@ public final class Navigator: @unchecked Sendable {
         child.navigationModifierInherits = navigationModifierInherits
         child.presentationModifier = presentationModifierInherits ? presentationModifier : nil
         child.presentationModifierInherits = presentationModifierInherits
-        log(.lifecycle(.adding(child.id, name: child.name)))
+        // New child becomes current
+        Navigator.set(current: child)
     }
 
     /// Removes a child navigator from a parent.
     internal func removeChild(_ child: Navigator) {
         log(.lifecycle(.removing(child.id, name: child.name)))
         _children.removeValue(forKey: child.id)
+        child.dismissAction = nil
         if child.isPresented {
             self.isPresenting = false
+            if let current = find(id: id) {
+                Navigator.set(current: current)
+            }
         }
-        child.dismissAction = nil
     }
 
     /// Renames navigator for wrapped navigation stacks.

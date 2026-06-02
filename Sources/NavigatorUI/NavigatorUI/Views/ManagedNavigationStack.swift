@@ -122,7 +122,7 @@ public struct ManagedNavigationStack<Content: View>: View {
             }
             .modifier(NavigationSceneStorageModifier(navigator: navigator, name: sceneName))
             .onAppear {
-                Navigator.current = navigator
+                Navigator.set(current: navigator)
             }
         }
     }
@@ -160,7 +160,7 @@ public struct ManagedNavigationStack<Content: View>: View {
             .modifier(NavigationSceneStorageModifier(navigator: navigator, name: sceneName))
             .environment(\.navigator, navigator)
             .onAppear {
-                Navigator.current = navigator
+                Navigator.set(current: navigator)
             }
         }
     }

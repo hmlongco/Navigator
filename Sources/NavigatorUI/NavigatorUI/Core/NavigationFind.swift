@@ -11,17 +11,17 @@ extension Navigator {
 
     /// Returns first navigator found with given id
     @MainActor public func find(id: UUID) -> Navigator? {
-        root.recursiveFindChild({ $0.id == id })
+        root.recursiveFindChild { $0.id == id }
     }
 
     /// Returns first navigator found with given name
     @MainActor public func named(_ name: String) -> Navigator? {
-        root.recursiveFindChild({ $0.name == name })
+        root.recursiveFindChild { $0.name == name }
     }
 
     /// Returns child navigator found with given name
     @MainActor public func child(named name: String) -> Navigator? {
-        recursiveFindChild({ $0.name == name })
+        recursiveFindChild { $0.name == name }
     }
 
     /// Find a parent navigator that matches the current condition

@@ -25,14 +25,18 @@ struct ContentSheetSection: View {
     @State var presentSheet: HomeDestinations?
     @State var presentCover: HomeDestinations?
     var body: some View {
-        Section("Presentation Actions") {
+        Section("Current Navigator") {
             Button("Present On Current Navigator (5s)") {
                 Task {
                     try? await Task.sleep(nanoseconds: 5_000_000_000)
                     Navigator.current?.navigate(to: HomeDestinations.presented1)
                 }
             }
+            Text("Current: \(Navigator.current?.nameOrId ?? "?")")
+                .font(.footnote)
+        }
 
+        Section("Presentation Actions") {
             Button("Present Sheet (Imperative)") {
                 navigator.navigate(to: HomeDestinations.presented1)
                 if let d = navigator.presentingSheetOrCover as? HomeDestinations, d == .presented1 {

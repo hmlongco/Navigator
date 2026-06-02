@@ -35,7 +35,7 @@ nonisolated public enum HomeDestinations: Codable, NavigationDestination {
         case .halfSheet2:
             [.fraction(0.3), .medium, .large]
         default:
-            [.medium, .large]
+            [.large]
         }
     }
     

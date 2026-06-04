@@ -1,5 +1,5 @@
 //
-//  BindingExample.swift
+//  BindingExampleView.swift
 //  Navigator
 //
 //  Created by Michael Long on 2/12/25.

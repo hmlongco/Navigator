@@ -10,7 +10,7 @@ import SwiftUI
 
 nonisolated public enum ExampleDestinations: String, NavigationDestination, CaseIterable {
 
-    case flow
+    case flows
     case binding
     case callback
     case transition
@@ -21,7 +21,7 @@ nonisolated public enum ExampleDestinations: String, NavigationDestination, Case
             BindingExampleView()
         case .callback:
             CallbackExampleView()
-        case .flow:
+        case .flows:
             FlowExampleView()
         case .transition:
             if #available(iOS 18.0, *) {
@@ -46,8 +46,8 @@ nonisolated public enum ExampleDestinations: String, NavigationDestination, Case
             "Demonstrates using a binding in navigation destinations."
         case .callback:
             "Demonstrates using callback handlers and checkpoints in navigation destinations."
-        case .flow:
-            "Demonstrates using a NavigationFlow."
+        case .flows:
+            "Demonstrates using NavigationFlows."
         case .transition:
             "Demonstrates custom transitions with navigation destinations. (iOS 18.0+)"
         }

@@ -37,3 +37,4 @@ Ready to get started?
 
 - <doc:AdvancedDestinations>
 - <doc:ProvidedDestinations>
+- <doc:Flows>

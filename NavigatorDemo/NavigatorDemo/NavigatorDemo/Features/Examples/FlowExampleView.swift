@@ -13,8 +13,11 @@ struct FlowExampleView: View {
         ManagedNavigationStack { navigator in
             List {
                 Section("Navigation Flows") {
-                    Button("Start ABC Flow") {
-                        navigator.start(ABCFlow(initialValue: 22))
+                    Button("Start Onboarding Flow") {
+                        navigator.start(OnboardingFlow { firstName, lastName, email in
+                            try await Task.sleep(for: .seconds(1))
+                            print("Onboarded \(firstName) \(lastName) <\(email)>")
+                        })
                     }
                 }
                 Section {
@@ -23,54 +26,81 @@ struct FlowExampleView: View {
                     }
                 }
             }
-            .navigationTitle("Flow Example")
+            .navigationTitle("Flow Examples")
         }
     }
 }
 
-nonisolated struct ABCFlow: NavigationFlow {
+nonisolated struct OnboardingFlow: NavigationFlow {
     var checkpoint: NavigationFlowCheckpoint?
 
-    let initialValue: Int
-    var aaaValue: Int?
-    var bbbValue: Int?
-    var cccValue: Int?
+    var firstName: String = ""
+    var lastName: String = ""
+    var email: String = ""
+
+    private let handler: @Sendable (String, String, String) async throws -> Void
+
+    init(firstName: String = "", handler: @escaping @Sendable (String, String, String) async throws -> Void) {
+        self.firstName = firstName
+        self.handler = handler
+    }
 
     func start() -> FlowResult<Destinations> {
-        .destination(.aaa(self))
+        .destination(.welcome(self))
     }
 
     mutating func next() -> FlowResult<Destinations> {
-        if bbbValue == nil {
-            return .destination(.bbb(self))
+        if firstName.isEmpty || lastName.isEmpty {
+            return .destination(.name(self))
         }
-        if cccValue == nil {
-            return .destination(.ccc(self))
+        if email.isEmpty {
+            return .destination(.email(self))
         }
-        return .complete
+        return .destination(.completed(self))
+    }
+
+    func submit() async throws {
+        try await handler(firstName, lastName, email)
+    }
+
+    static func == (lhs: OnboardingFlow, rhs: OnboardingFlow) -> Bool {
+        lhs.checkpoint == rhs.checkpoint
+            && lhs.firstName == rhs.firstName
+            && lhs.lastName == rhs.lastName
+            && lhs.email == rhs.email
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(checkpoint)
+        hasher.combine(firstName)
+        hasher.combine(lastName)
+        hasher.combine(email)
     }
 }
 
-extension ABCFlow {
+extension OnboardingFlow {
     nonisolated enum Destinations: NavigationDestination {
-        case aaa(ABCFlow)
-        case bbb(ABCFlow)
-        case ccc(ABCFlow)
+        case welcome(OnboardingFlow)
+        case name(OnboardingFlow)
+        case email(OnboardingFlow)
+        case completed(OnboardingFlow)
 
         var body: some View {
             switch self {
-            case let .aaa(flow):
-                AAAView(flow)
-            case let .bbb(flow):
-                BBBView(flow)
-            case let .ccc(flow):
-                CCCView(flow)
+            case let .welcome(flow):
+                WelcomeView(flow)
+            case let .name(flow):
+                NameView(flow)
+            case let .email(flow):
+                EmailView(flow)
+            case let .completed(flow):
+                CompletedView(flow)
             }
         }
 
         var method: NavigationMethod {
             switch self {
-            case .aaa:
+            case .welcome:
                 .managedSheet
             default:
                 .push
@@ -79,53 +109,133 @@ extension ABCFlow {
     }
 }
 
-struct AAAView: View {
+struct WelcomeView: View {
     @Environment(\.navigator) private var navigator
-    @State var flow: ABCFlow
-    init(_ flow: ABCFlow) {
+    @State var flow: OnboardingFlow
+    init(_ flow: OnboardingFlow) {
         self.flow = flow
     }
     var body: some View {
-        List {
-            Button("Next from \(flow.initialValue)") {
-                flow.aaaValue = 42
+        VStack(spacing: 16) {
+            Text("Welcome!")
+                .font(.largeTitle)
+            Text("Let's get you set up. We're going to ask you a few questions before we begin.")
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+                .padding()
+            Button("Get Started") {
                 navigator.next(flow)
             }
+            .buttonStyle(.bordered)
         }
-        .navigationTitle("AAA View")
+        .padding()
+        .tint(.primary)
+        .navigationTitle("Onboarding")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
-struct BBBView: View {
+struct NameView: View {
     @Environment(\.navigator) private var navigator
-    @State var flow: ABCFlow
-    init(_ flow: ABCFlow) {
+    @State var flow: OnboardingFlow
+    init(_ flow: OnboardingFlow) {
         self.flow = flow
     }
     var body: some View {
-        List {
+        Form {
+            Section("Please enter your first and last name...") {
+                TextField("First name", text: $flow.firstName)
+                TextField("Last name", text: $flow.lastName)
+            }
             Button("Next") {
-                flow.bbbValue = 324
                 navigator.next(flow)
             }
+            .disabled(flow.firstName.isEmpty || flow.lastName.isEmpty)
         }
-        .navigationTitle("BBB View")
+        .tint(.primary)
+        .navigationTitle("Name")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
-struct CCCView: View {
+struct EmailView: View {
     @Environment(\.navigator) private var navigator
-    @State var flow: ABCFlow
-    init(_ flow: ABCFlow) {
+    @State var flow: OnboardingFlow
+    @State var submitting: Bool = false
+    @State var errorMessage: String?
+    init(_ flow: OnboardingFlow) {
         self.flow = flow
     }
     var body: some View {
-        List {
-            Button("Done") {
-                flow.cccValue = 12
-                navigator.next(flow)
+        Form {
+            Section("Okay \(flow.firstName), please enter your email address.") {
+                TextField("", text: $flow.email, prompt: Text("email@exampple.com").foregroundStyle(.secondary))
+                    #if os(iOS)
+                    .keyboardType(.emailAddress)
+                    .textInputAutocapitalization(.never)
+                    #endif
+                    .autocorrectionDisabled()
             }
+            if let errorMessage {
+                Text(errorMessage)
+                    .foregroundStyle(.red)
+            }
+            Button(submitting ? "Submitting..." : "Submit") {
+                Task { await submit() }
+            }
+            .disabled(submitting || !isValidEmail(flow.email))
         }
-        .navigationTitle("CCC View")
+        .tint(.primary)
+        .navigationTitle("Email Address")
+    }
+
+    func submit() async {
+        submitting = true
+        defer { submitting = false }
+        errorMessage = nil
+        do {
+            try await flow.submit()
+            navigator.next(flow)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func isValidEmail(_ candidate: String) -> Bool {
+        candidate.range(of: #"^\S+@\S+\.\S+$"#, options: .regularExpression) != nil
     }
 }
+
+struct CompletedView: View {
+    @Environment(\.navigator) private var navigator
+    @State var flow: OnboardingFlow
+    init(_ flow: OnboardingFlow) {
+        self.flow = flow
+    }
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("Completed!")
+                .font(.largeTitle)
+            Text("That's all there is to it!")
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+                .padding()
+            Button("Done") {
+                navigator.complete(flow)
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding()
+        .tint(.primary)
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden()
+    }
+}
+
+#if DEBUG
+#Preview {
+    EmailView(OnboardingFlow(firstName: "Michael") { _, _, _ in })
+        .preferredColorScheme(.dark)
+}
+#endif

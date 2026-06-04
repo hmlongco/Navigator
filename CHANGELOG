@@ -1,5 +1,10 @@
 # Navigator Changelog
 
+### 2.0.3
+
+* Update NavigationDemo's Flow example to illustrate an Onboarding flow
+* Update Navigator's documentation on NavigationFlow
+
 ### 2.0.2
 
 * Add navigator name for logging and ManagedPresentationView #105

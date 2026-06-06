@@ -34,9 +34,18 @@ public protocol NavigationFlow: Hashable {
 
     /// Advances the flow to its next step and returns the result.
     ///
-    /// This is typically called after the user has interacted with the
-    /// previously presented destination.
-    mutating func next() -> FlowResult<Destination>
+    /// This is typically called *after* the user has interacted with the
+    /// previously presented destination and any associated state has been
+    /// acquired and updated.
+    /// ```swift
+    /// Button("Next") {
+    ///     Task { try? await navigator.next(flow) }
+    /// }
+    /// ```
+    /// Next is async and throws in case any asynchronous work or error handling needs to be done, and it also returns an instance of itself in case that work mutates the flow state even further.
+    ///
+    /// (See the `copy` function.)
+    func next() async throws -> (Self, FlowResult<Destination>)
 
     /// Called when the flow completes successfully.
     ///
@@ -60,6 +69,15 @@ extension NavigationFlow {
     public func onComplete() {}
     public func onCancel() {}
     public func onError(_ error: Error) {}
+}
+
+extension NavigationFlow {
+    /// Convenience function used to return a mutated copy of the object
+    public func copy(mutate: (inout Self) -> Void) -> Self {
+        var mutable = self
+        mutate(&mutable)
+        return mutable
+    }
 }
 
 /// The result of advancing a ``NavigationFlow``.
@@ -99,17 +117,17 @@ extension Navigator {
     ///
     /// - Parameter flow: The flow to start.
     @MainActor public func start(_ flow: some NavigationFlow) {
-        var mutableFlow = flow
-        mutableFlow.checkpoint = .init(id: id, index: count)
-        switch mutableFlow.start() {
+        var copy = flow
+        copy.checkpoint = .init(id: id, index: count)
+        switch copy.start() {
         case .destination(let destination):
             navigate(to: destination)
         case .complete:
-            complete(mutableFlow)
+            complete(copy)
         case .cancel:
-            cancel(mutableFlow)
+            cancel(copy)
         case .error(let e):
-            error(mutableFlow, error: e)
+            error(copy, error: e)
         }
     }
 
@@ -117,17 +135,17 @@ extension Navigator {
     ///
     /// - Parameter flow: The flow instance to advance.
     @MainActor
-    public func next(_ flow: some NavigationFlow) {
-        var mutableFlow = flow
-        switch mutableFlow.next() {
+    public func next(_ flow: some NavigationFlow) async throws {
+        let (copy, result) = try await flow.next()
+        switch result {
         case .destination(let destination):
             navigate(to: destination)
         case .complete:
-            complete(mutableFlow)
+            complete(copy)
         case .cancel:
-            cancel(mutableFlow)
+            cancel(copy)
         case .error(let e):
-            error(mutableFlow, error: e)
+            error(copy, error: e)
         }
     }
 

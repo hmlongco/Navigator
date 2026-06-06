@@ -6,7 +6,7 @@
 
 Advanced Navigation Support for SwiftUI.
 
-## Navigator 2.0.3
+## Navigator 2.1.0
 
 Navigator provides SwiftUI with a simple yet powerful navigation layer based on NavigationStack. 
 

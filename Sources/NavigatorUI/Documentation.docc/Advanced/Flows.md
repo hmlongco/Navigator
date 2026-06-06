@@ -27,7 +27,7 @@ public protocol NavigationFlow: Hashable {
     var checkpoint: NavigationFlowCheckpoint? { get set }
 
     func start() -> FlowResult<Destination>
-    mutating func next() -> FlowResult<Destination>
+    func next() async throws -> (Self, FlowResult<Destination>)
 
     func onComplete()
     func onCancel()
@@ -35,9 +35,9 @@ public protocol NavigationFlow: Hashable {
 }
 ```
 
-The three lifecycle hooks have empty default implementations. Override only the ones you care about.
+`next()` is `async throws` because deciding what comes next may need to await a network call or surface an error. It returns a tuple of `(Self, FlowResult)` so the flow can hand back an updated copy of itself alongside the navigation decision. The three lifecycle hooks have empty default implementations. Override only the ones you care about.
 
-Here's a real flow: an onboarding sequence that collects a name and email, submits them, and shows a confirmation screen before tearing down.
+Here's a real flow: an onboarding sequence that collects a name and email and fires a completion callback when the user finishes.
 
 ```swift
 nonisolated struct OnboardingFlow: NavigationFlow {
@@ -47,28 +47,32 @@ nonisolated struct OnboardingFlow: NavigationFlow {
     var lastName: String = ""
     var email: String = ""
 
-    private let handler: @Sendable (String, String, String) async throws -> Void
+    private let completion: Callback<(String, String, String)>
 
-    init(handler: @escaping @Sendable (String, String, String) async throws -> Void) {
-        self.handler = handler
+    init(completion: @escaping @Sendable (String, String, String) -> Void) {
+        self.completion = .init(handler: completion)
     }
 
     func start() -> FlowResult<Destinations> {
         .destination(.welcome(self))
     }
 
-    mutating func next() -> FlowResult<Destinations> {
+    func next() async throws -> (Self, FlowResult<Destinations>) {
         if firstName.isEmpty || lastName.isEmpty {
-            return .destination(.name(self))
+            return (self, .destination(.name(self)))
         }
-        if email.isEmpty {
-            return .destination(.email(self))
+        if !isValidEmail {
+            return (self, .destination(.email(self)))
         }
-        return .destination(.completed(self))
+        return (self, .destination(.onboarded(self)))
     }
 
-    func submit() async throws {
-        try await handler(firstName, lastName, email)
+    var isValidEmail: Bool {
+        email.range(of: #"^\S+@\S+\.\S+$"#, options: .regularExpression) != nil
+    }
+
+    func onComplete() {
+        completion((firstName, lastName, email))
     }
 }
 ```
@@ -85,7 +89,7 @@ extension OnboardingFlow {
         case welcome(OnboardingFlow)
         case name(OnboardingFlow)
         case email(OnboardingFlow)
-        case completed(OnboardingFlow)
+        case onboarded(OnboardingFlow)
 
         var body: some View {
             switch self {
@@ -95,8 +99,8 @@ extension OnboardingFlow {
                 NameView(flow)
             case let .email(flow):
                 EmailView(flow)
-            case let .completed(flow):
-                CompletedView(flow)
+            case let .onboarded(flow):
+                OnboardedView(flow)
             }
         }
     }
@@ -117,13 +121,15 @@ struct NameView: View {
                 TextField("Last name", text: $flow.lastName)
             }
             Button("Next") {
-                navigator.next(flow)
+                Task { try? await navigator.next(flow) }
             }
             .disabled(flow.firstName.isEmpty || flow.lastName.isEmpty)
         }
     }
 }
 ```
+
+`navigator.next(_:)` is `async throws`, so the button wraps it in a `Task` and either handles or swallows any error the flow raises.
 
 There's no view model. There's no shared store. The `TextField` binds straight into the flow's stored properties via `@State`'s projected binding, and the button hands the mutated copy back to the navigator. That's the entire data layer for this screen.
 
@@ -138,117 +144,112 @@ Two methods on ``Navigator`` move a flow forward.
 ```swift
 Button("Start Onboarding Flow") {
     navigator.start(OnboardingFlow { firstName, lastName, email in
-        try await Task.sleep(for: .seconds(1))
-        print("Onboarded \(firstName) \(lastName) <\(email)>")
+        print("Onboarded \(firstName) \(lastName) with <\(email)>")
     })
 }
 ```
 
-Both methods route the returned ``FlowResult`` the same way. A `.destination(d)` pushes the next step. A `.complete`, `.cancel`, or `.error(e)` returns the stack to the checkpoint and fires the corresponding hook.
+`navigator.start(_:)` is synchronous because `start()` on the protocol is synchronous. `navigator.next(_:)` is `async throws` because `next()` is, so callers wrap it in a `Task`. Both route the returned ``FlowResult`` the same way: `.destination(d)` pushes the next step, and `.complete`, `.cancel`, or `.error(e)` returns the stack to the checkpoint and fires the corresponding hook.
 
-The flow's `next()` is the state machine. It inspects the current fields and decides what comes next or that you're done.
+The flow's `next()` is the state machine. It inspects the current fields, optionally does asynchronous work, and returns the updated flow alongside the navigation decision.
 
 ```swift
-mutating func next() -> FlowResult<Destinations> {
+func next() async throws -> (Self, FlowResult<Destinations>) {
     if firstName.isEmpty || lastName.isEmpty {
-        return .destination(.name(self))
+        return (self, .destination(.name(self)))
     }
-    if email.isEmpty {
-        return .destination(.email(self))
+    if !isValidEmail {
+        return (self, .destination(.email(self)))
     }
-    return .destination(.completed(self))
+    return (self, .destination(.onboarded(self)))
 }
 ```
 
-Each branch reads a piece of state and decides what comes next. Notice that `next()` never returns `.complete` here. The flow's last screen always pushes a confirmation view, and terminating the flow is the confirmation view's job, not the state machine's. Past five or six steps this chain of `if`-checks turns into a debugging puzzle and an explicit step enum is the right refactor.
+Each branch reads a piece of state and returns the unchanged flow alongside the next destination. Notice that `next()` never returns `.complete` here. The flow's last screen always pushes a confirmation view, and terminating the flow is the confirmation view's job, not the state machine's. Past five or six steps this chain of `if`-checks turns into a debugging puzzle and an explicit step enum is the right refactor.
 
-### Carrying Dependencies Into the Flow
+### Hiding the Handler
 
-The flow needs to do *something* with the data it collects. In the example above, the initializer takes an async closure and stores it privately.
+The flow needs to do *something* with the data it collects. The naive answer is to hand the handler into the final view as a parameter and let the view call it.
+
+Don't do that.
+
+The completion screen has no business knowing that a callback exists. It wants to know how to dismiss the flow when the user taps Done. The callback, the arguments, the data the callback needs, none of that is the view's problem.
+
+So the closure goes on the flow, private. And the flow fires it from one of the lifecycle hooks the protocol already gives you.
 
 ```swift
-private let handler: @Sendable (String, String, String) async throws -> Void
-```
+private let completion: Callback<(String, String, String)>
 
-That's how the flow gets the thing it eventually needs to call without coupling its definition to a specific submission service. The closure is `let`, set once at construction, called from the flow's own `submit()` method.
-
-Keep the handler private. Views inside the flow have no reason to know how submission works, only that they can ask the flow to perform it. The flow exposes a method:
-
-```swift
-func submit() async throws {
-    try await handler(firstName, lastName, email)
+func onComplete() {
+    completion((firstName, lastName, email))
 }
 ```
 
-The method is non-mutating on purpose. A `mutating async` method can't be called against actor-isolated `@State` storage in Swift 6 — the compiler refuses to hand the storage out as `inout` across the suspension. Keeping `submit()` non-mutating sidesteps the problem and matches the natural call site `try await flow.submit()`.
+`onComplete()` is exactly what it sounds like. A hook that fires after the flow completes. The view calls `navigator.complete(flow)`, the navigator restores the stack to the checkpoint, then calls the flow's `onComplete()`, which fires the closure with the data the flow has been accumulating.
 
-There's also a small price on conformance. Closures are not `Hashable`, so the moment you add one, the auto-synthesized `Hashable` conformance disappears. Implement it manually over the value properties and ignore the closure.
+This is the division the protocol is designed around. `start()` and `next()` are navigation decisions. The hooks are where side effects go. Don't reach for the view layer to invoke a callback the flow already has all the information to invoke itself.
+
+#### Why `Callback`, not a bare closure?
+
+``NavigationFlow`` requires `Hashable` so the flow can ride the navigation path as part of a destination enum's associated value. The moment you store a raw closure on the flow you lose the auto-synthesized `Hashable` conformance, because closures aren't `Hashable`.
+
+You could implement `Hashable` by hand, list every value property in `==` and `hash(into:)`, and skip the closure. That works. But Navigator ships ``Callback`` for exactly this case.
 
 ```swift
-static func == (lhs: OnboardingFlow, rhs: OnboardingFlow) -> Bool {
-    lhs.checkpoint == rhs.checkpoint
-        && lhs.firstName == rhs.firstName
-        && lhs.lastName == rhs.lastName
-        && lhs.email == rhs.email
-}
-
-func hash(into hasher: inout Hasher) {
-    hasher.combine(checkpoint)
-    hasher.combine(firstName)
-    hasher.combine(lastName)
-    hasher.combine(email)
+public struct Callback<Value>: Hashable, Equatable {
+    public let identifier: String
+    public let handler: (Value) -> Void
+    // ... hashes on identifier, calls handler via callAsFunction
 }
 ```
 
-This is safe because the closure is fixed for the lifetime of the flow. Excluding it from equality cannot make two genuinely-different flows compare equal in any way navigation cares about.
+`Callback<Value>` wraps a closure with a stable identifier (a fresh UUID by default, or one you pass in). Equality and hashing operate on the identifier instead of the closure itself, so the wrapping flow keeps its synthesized `Hashable` conformance with no boilerplate. The trade is that two callbacks created with the same closure compare unequal, which is the right semantic when the closure is constructed once at flow init and never replaced.
 
-### Async Work in a Flow
-
-The flow protocol is synchronous on purpose. `start()` and `next()` are decisions, not effects. Anything that needs to await belongs in the view layer, which calls `navigator.next(flow)` once the await resolves.
+Wrap the incoming closure in the flow's initializer:
 
 ```swift
-struct EmailView: View {
-    @Environment(\.navigator) private var navigator
-    @State var flow: OnboardingFlow
-    @State var submitting: Bool = false
-    @State var errorMessage: String?
+init(completion: @escaping @Sendable (String, String, String) -> Void) {
+    self.completion = .init(handler: completion)
+}
+```
 
-    var body: some View {
-        Form {
-            Section("Your Email") {
-                TextField("name@example.com", text: $flow.email)
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-            }
-            if let errorMessage {
-                Text(errorMessage).foregroundStyle(.red)
-            }
-            Button(submitting ? "Submitting..." : "Submit") {
-                Task { await submit() }
-            }
-            .disabled(submitting || !isValidEmail(flow.email))
-        }
+And invoke it via `callAsFunction`, which lets you call the wrapper like a closure:
+
+```swift
+func onComplete() {
+    completion((firstName, lastName, email))
+}
+```
+
+The single tuple argument matches Callback's `Value` type parameter.
+
+>Warning: `Callback` is not `Codable`. Storing one on a flow disables state restoration for any `ManagedNavigationStack` that hosts the flow, and it can interfere with deep linking because external URL handlers can't synthesize the underlying closure. When state restoration or deep-link reachability matters more than a one-shot callback, return the collected value through a checkpoint instead. See <doc:Checkpoints>.
+
+### Async Work in next()
+
+The previous example's `next()` is synchronous because it doesn't need to await anything. Real flows often do.
+
+`next()` is `async throws` so it can `await` a network call, a persistence write, or any other effect that produces information needed to decide which step comes next. The tuple return is what makes that ergonomic: the method hands back an updated copy of the flow alongside the navigation result, so whatever the async work produced is captured on the flow as it advances.
+
+```swift
+func next() async throws -> (Self, FlowResult<Destinations>) {
+    if firstName.isEmpty || lastName.isEmpty {
+        return (self, .destination(.name(self)))
     }
-
-    func submit() async {
-        submitting = true
-        defer { submitting = false }
-        errorMessage = nil
-        do {
-            try await flow.submit()
-            navigator.next(flow)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+    if !isValidEmail {
+        return (self, .destination(.email(self)))
     }
+    let userID = try await api.register(email: email, name: firstName)
+    let updated = copy { $0.userID = userID }
+    return (updated, .destination(.onboarded(updated)))
 }
 ```
 
-Notice what the view doesn't know. It doesn't know the flow holds a closure. It doesn't know what `submit()` does internally. It asks the flow to submit, and on success hands the same flow back to the navigator. The flow's internals stay the flow's business.
+`copy(mutate:)` is a default-implemented helper on ``NavigationFlow`` that takes a closure, applies it to a mutable copy of `self`, and returns the result. It exists specifically so that returning updated state from a non-mutating method stays a one-liner.
 
-On failure the view stays put and surfaces the error. On success, `navigator.next(flow)` pushes the confirmation screen. The confirmation screen terminates the flow explicitly, which is the next section.
+If the async work throws, the error propagates out through `navigator.next(flow)`. The view's `try?` swallows it. If you'd rather treat a failure as fatal to the flow, return `.error(e)` from `next()` instead. The navigator routes that to `onError(_:)` after restoring the stack to the checkpoint, the same way it routes `.complete` to `onComplete()`.
 
->Note: If an awaited failure should kill the flow entirely rather than let the user retry in place, call `navigator.error(flow, error:)` instead of `navigator.next(flow)`. The flow's `onError(_:)` hook fires after the stack has already returned to the checkpoint, so use it for telemetry or for surfacing a toast at the entry point, not for recovery inside the flow.
+>Note: The async work happens before any navigation occurs. The user sees the last screen they were on until `next()` returns. If the work might take a moment, the calling view should reflect that, usually by disabling its action button or showing a progress indicator while its `Task` is in flight.
 
 ### Mixing Navigation Methods
 
@@ -276,7 +277,7 @@ A flow ends one of two ways. Either `next()` returns one of the terminal `FlowRe
 The onboarding example uses the imperative form. The confirmation screen knows it's the last step, so it doesn't need the state machine to figure that out.
 
 ```swift
-struct CompletedView: View {
+struct OnboardedView: View {
     @Environment(\.navigator) private var navigator
     @State var flow: OnboardingFlow
 
@@ -307,40 +308,11 @@ Override only what you need. A welcome toast in `onComplete()`. Telemetry in `on
 
 >Note: The hooks fire *after* the navigator has returned to the checkpoint, not before. If `onComplete()` wants to show a confirmation, the user is already back at the entry point, not on the final step of the flow. That's almost always what you want, but it's worth being explicit about so you don't try to push something onto a stack that no longer exists.
 
-### Class Flows
-
-The example above is a plain struct. For most sequences that's all you need. Three or four fields, value semantics throughout, the navigator copies the flow from step to step and nobody else has to think about it.
-
-That stops being a good fit when the flow holds state that's expensive to copy or state that has to be shared with code outside the flow. A checkout sequence accumulating cart line items, a shipping address, a payment method, promo codes, and tax calculations is a lot of bytes to hand around every time the user taps Next. It probably also needs to coordinate with a global cart that's already a reference type. 
-
-In which case we simply make the flow a class.
-
-```swift
-@MainActor
-final class CheckoutFlow: NavigationFlow {
-    var checkpoint: NavigationFlowCheckpoint?
-
-    let cart: Cart
-    var shipping: Address?
-    var payment: PaymentMethod?
-
-    init(cart: Cart) {
-        self.cart = cart
-    }
-
-    func start() -> FlowResult<Destinations> { .destination(.review(self)) }
-    func next() -> FlowResult<Destinations> { /* inspect state, return next step */ }
-
-    static func == (lhs: CheckoutFlow, rhs: CheckoutFlow) -> Bool { lhs === rhs }
-    func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(self)) }
-}
-```
-
-`Hashable` is by identity now, which is the right semantic for a class. Two instances are the same flow only if they're literally the same object. `next()` is no longer `mutating` either, because the class itself is the mutable storage.
-
 ## Protocol Flows
 
-We can go further. ``NavigationFlow`` is a protocol, so flows themselves can be protocols. That's how you reuse a screen across different sequences. An "address entry" view that belongs in both checkout and profile editing doesn't want to be hard-coded to one concrete flow type.
+We can go further. ``NavigationFlow`` is a protocol, but flows themselves can *also* be protocols. 
+
+Why? What if we wanted to reuse a screen across different sequences. An "address entry" view that belongs in both checkout and profile editing doesn't want to be hard-coded to one concrete flow type.
 
 ```swift
 protocol AddressCollecting: NavigationFlow {

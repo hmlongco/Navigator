@@ -15,8 +15,7 @@ struct FlowExampleView: View {
                 Section("Navigation Flows") {
                     Button("Start Onboarding Flow") {
                         navigator.start(OnboardingFlow { firstName, lastName, email in
-                            try await Task.sleep(for: .seconds(1))
-                            print("Onboarded \(firstName) \(lastName) <\(email)>")
+                            print("Onboarded \(firstName) \(lastName) with <\(email)>")
                         })
                     }
                 }
@@ -38,44 +37,35 @@ nonisolated struct OnboardingFlow: NavigationFlow {
     var lastName: String = ""
     var email: String = ""
 
-    private let handler: @Sendable (String, String, String) async throws -> Void
+    private let completion: Callback<(String, String, String)>
 
-    init(firstName: String = "", handler: @escaping @Sendable (String, String, String) async throws -> Void) {
+    init(firstName: String = "", completion: @escaping @Sendable (String, String, String) -> Void) {
         self.firstName = firstName
-        self.handler = handler
+        self.completion = .init(handler: completion)
     }
 
     func start() -> FlowResult<Destinations> {
         .destination(.welcome(self))
     }
 
-    mutating func next() -> FlowResult<Destinations> {
+    func next() async throws -> (Self, FlowResult<Destination>) {
         if firstName.isEmpty || lastName.isEmpty {
-            return .destination(.name(self))
+            return (self, .destination(.name(self)))
         }
-        if email.isEmpty {
-            return .destination(.email(self))
+        if !isValidEmail {
+            return (self, .destination(.email(self)))
         }
-        return .destination(.completed(self))
+        return (self, .destination(.onboarded(self)))
     }
 
-    func submit() async throws {
-        try await handler(firstName, lastName, email)
+    var isValidEmail: Bool {
+        email.range(of: #"^\S+@\S+\.\S+$"#, options: .regularExpression) != nil
     }
 
-    static func == (lhs: OnboardingFlow, rhs: OnboardingFlow) -> Bool {
-        lhs.checkpoint == rhs.checkpoint
-            && lhs.firstName == rhs.firstName
-            && lhs.lastName == rhs.lastName
-            && lhs.email == rhs.email
+   func onComplete() {
+       completion((firstName, lastName, email))
     }
 
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(checkpoint)
-        hasher.combine(firstName)
-        hasher.combine(lastName)
-        hasher.combine(email)
-    }
 }
 
 extension OnboardingFlow {
@@ -83,7 +73,7 @@ extension OnboardingFlow {
         case welcome(OnboardingFlow)
         case name(OnboardingFlow)
         case email(OnboardingFlow)
-        case completed(OnboardingFlow)
+        case onboarded(OnboardingFlow)
 
         var body: some View {
             switch self {
@@ -93,8 +83,8 @@ extension OnboardingFlow {
                 NameView(flow)
             case let .email(flow):
                 EmailView(flow)
-            case let .completed(flow):
-                CompletedView(flow)
+            case let .onboarded(flow):
+                OnboardedView(flow)
             }
         }
 
@@ -124,7 +114,7 @@ struct WelcomeView: View {
                 .foregroundStyle(.secondary)
                 .padding()
             Button("Get Started") {
-                navigator.next(flow)
+                Task { try? await navigator.next(flow) }
             }
             .buttonStyle(.bordered)
         }
@@ -148,7 +138,7 @@ struct NameView: View {
                 TextField("Last name", text: $flow.lastName)
             }
             Button("Next") {
-                navigator.next(flow)
+                Task { try? await navigator.next(flow) }
             }
             .disabled(flow.firstName.isEmpty || flow.lastName.isEmpty)
         }
@@ -161,14 +151,12 @@ struct NameView: View {
 struct EmailView: View {
     @Environment(\.navigator) private var navigator
     @State var flow: OnboardingFlow
-    @State var submitting: Bool = false
-    @State var errorMessage: String?
     init(_ flow: OnboardingFlow) {
         self.flow = flow
     }
     var body: some View {
         Form {
-            Section("Okay \(flow.firstName), please enter your email address.") {
+            Section("\(flow.firstName), please enter a valid email address.") {
                 TextField("", text: $flow.email, prompt: Text("email@exampple.com").foregroundStyle(.secondary))
                     #if os(iOS)
                     .keyboardType(.emailAddress)
@@ -176,37 +164,18 @@ struct EmailView: View {
                     #endif
                     .autocorrectionDisabled()
             }
-            if let errorMessage {
-                Text(errorMessage)
-                    .foregroundStyle(.red)
+            Button("Submit") {
+                Task { try? await navigator.next(flow) }
             }
-            Button(submitting ? "Submitting..." : "Submit") {
-                Task { await submit() }
-            }
-            .disabled(submitting || !isValidEmail(flow.email))
+            .disabled(!flow.isValidEmail)
         }
         .tint(.primary)
         .navigationTitle("Email Address")
     }
 
-    func submit() async {
-        submitting = true
-        defer { submitting = false }
-        errorMessage = nil
-        do {
-            try await flow.submit()
-            navigator.next(flow)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    func isValidEmail(_ candidate: String) -> Bool {
-        candidate.range(of: #"^\S+@\S+\.\S+$"#, options: .regularExpression) != nil
-    }
 }
 
-struct CompletedView: View {
+struct OnboardedView: View {
     @Environment(\.navigator) private var navigator
     @State var flow: OnboardingFlow
     init(_ flow: OnboardingFlow) {

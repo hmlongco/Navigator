@@ -1,5 +1,9 @@
 # Navigator Changelog
 
+### 2.1.0
+
+* Revise NavigationFlow protocol, examples, and documentation
+
 ### 2.0.3
 
 * Update NavigationDemo's Flow example to illustrate an Onboarding flow

@@ -26,8 +26,8 @@ public protocol NavigationFlow: Hashable {
 
     var checkpoint: NavigationFlowCheckpoint? { get set }
 
-    func start() -> FlowResult<Destination>
-    func next() async throws -> (Self, FlowResult<Destination>)
+    func start() -> FlowResult<Self>
+    func next() async throws -> FlowResult<Self>
 
     func onComplete()
     func onCancel()
@@ -35,12 +35,23 @@ public protocol NavigationFlow: Hashable {
 }
 ```
 
-`next()` is `async throws` because deciding what comes next may need to await a network call or surface an error. It returns a tuple of `(Self, FlowResult)` so the flow can hand back an updated copy of itself alongside the navigation decision. The three lifecycle hooks have empty default implementations. Override only the ones you care about.
+`next()` is `async throws` because deciding what comes next may need to await a network call or surface an error. ``FlowResult`` is generic over the flow type, and its terminal cases (`.complete`, `.cancel`, `.error`) carry the flow itself, so any state the work mutated travels with the result wherever the navigator routes it next. The three lifecycle hooks have empty default implementations. Override only the ones you care about.
+
+```swift
+public enum FlowResult<Flow: NavigationFlow> {
+    case destination(Flow.Destination)
+    case complete(Flow)
+    case cancel(Flow)
+    case error(Flow, Error)
+}
+```
 
 Here's a real flow: an onboarding sequence that collects a name and email and fires a completion callback when the user finishes.
 
 ```swift
 nonisolated struct OnboardingFlow: NavigationFlow {
+    typealias Destination = Destinations
+
     var checkpoint: NavigationFlowCheckpoint?
 
     var firstName: String = ""
@@ -53,18 +64,18 @@ nonisolated struct OnboardingFlow: NavigationFlow {
         self.completion = .init(handler: completion)
     }
 
-    func start() -> FlowResult<Destinations> {
+    func start() -> FlowResult<Self> {
         .destination(.welcome(self))
     }
 
-    func next() async throws -> (Self, FlowResult<Destinations>) {
+    func next() async throws -> FlowResult<Self> {
         if firstName.isEmpty || lastName.isEmpty {
-            return (self, .destination(.name(self)))
+            return .destination(.name(self))
         }
         if !isValidEmail {
-            return (self, .destination(.email(self)))
+            return .destination(.email(self))
         }
-        return (self, .destination(.onboarded(self)))
+        return .destination(.onboarded(self))
     }
 
     var isValidEmail: Bool {
@@ -78,6 +89,8 @@ nonisolated struct OnboardingFlow: NavigationFlow {
 ```
 
 Notice what isn't there. No `@Observable`. No class. No `ObservableObject`. No shared store. The flow is a plain struct. The flow *is* its state.
+
+The explicit `typealias Destination = Destinations` is required. Because `start()` and `next()` both return `FlowResult<Self>`, neither signature mentions `Destination` directly, so the compiler has no way to infer the associatedtype from method shape alone. Declare it.
 
 ### The Flow Is the State
 
@@ -151,21 +164,21 @@ Button("Start Onboarding Flow") {
 
 `navigator.start(_:)` is synchronous because `start()` on the protocol is synchronous. `navigator.next(_:)` is `async throws` because `next()` is, so callers wrap it in a `Task`. Both route the returned ``FlowResult`` the same way: `.destination(d)` pushes the next step, and `.complete`, `.cancel`, or `.error(e)` returns the stack to the checkpoint and fires the corresponding hook.
 
-The flow's `next()` is the state machine. It inspects the current fields, optionally does asynchronous work, and returns the updated flow alongside the navigation decision.
+The flow's `next()` is the state machine. It inspects the current fields, optionally does asynchronous work, and returns a `FlowResult<Self>` describing where the navigator should go.
 
 ```swift
-func next() async throws -> (Self, FlowResult<Destinations>) {
+func next() async throws -> FlowResult<Self> {
     if firstName.isEmpty || lastName.isEmpty {
-        return (self, .destination(.name(self)))
+        return .destination(.name(self))
     }
     if !isValidEmail {
-        return (self, .destination(.email(self)))
+        return .destination(.email(self))
     }
-    return (self, .destination(.onboarded(self)))
+    return .destination(.onboarded(self))
 }
 ```
 
-Each branch reads a piece of state and returns the unchanged flow alongside the next destination. Notice that `next()` never returns `.complete` here. The flow's last screen always pushes a confirmation view, and terminating the flow is the confirmation view's job, not the state machine's. Past five or six steps this chain of `if`-checks turns into a debugging puzzle and an explicit step enum is the right refactor.
+Each branch reads a piece of state and returns the next destination. Notice that `next()` never returns `.complete` here. The flow's last screen always pushes a confirmation view, and terminating the flow is the confirmation view's job, not the state machine's. Past five or six steps this chain of `if`-checks turns into a debugging puzzle and an explicit step enum is the right refactor.
 
 ### Hiding the Handler
 
@@ -225,29 +238,43 @@ The single tuple argument matches Callback's `Value` type parameter.
 
 >Warning: `Callback` is not `Codable`. Storing one on a flow disables state restoration for any `ManagedNavigationStack` that hosts the flow, and it can interfere with deep linking because external URL handlers can't synthesize the underlying closure. When state restoration or deep-link reachability matters more than a one-shot callback, return the collected value through a checkpoint instead. See <doc:Checkpoints>.
 
-### Async Work in next()
+### Async and Logic Work
 
 The previous example's `next()` is synchronous because it doesn't need to await anything. Real flows often do.
 
-`next()` is `async throws` so it can `await` a network call, a persistence write, or any other effect that produces information needed to decide which step comes next. The tuple return is what makes that ergonomic: the method hands back an updated copy of the flow alongside the navigation result, so whatever the async work produced is captured on the flow as it advances.
+`next()` is `async throws` so it can `await` a network call, a persistence write, or any other effect that produces information needed to decide which step comes next. Mutated state forwards along one of two paths. Terminal cases of `FlowResult` carry the flow directly, so `onComplete()`, `onCancel()`, and `onError(_:)` see the final state. Destination cases carry your destination, and by the convention shown earlier in the `Destinations` enum, each destination case carries the flow as its associated value, so the next view receives the mutated copy.
 
 ```swift
-func next() async throws -> (Self, FlowResult<Destinations>) {
+func next() async throws -> FlowResult<Self> {
     if firstName.isEmpty || lastName.isEmpty {
-        return (self, .destination(.name(self)))
+        return .destination(.name(self))
     }
     if !isValidEmail {
-        return (self, .destination(.email(self)))
+        return .destination(.email(self))
     }
-    let userID = try await api.register(email: email, name: firstName)
-    let updated = copy { $0.userID = userID }
-    return (updated, .destination(.onboarded(updated)))
+    if !isRegistered {
+        let (userID, termsRequired) = try await api.register(email: email, name: firstName)
+        let updated = copy {
+            $0.userID = userID
+            $0.isTermsRequired = termsRequired
+            $0.isRegistered = true
+        }
+        if termsRequired {
+            return .destination(.terms(updated))
+        }
+        return .destination(.onboarded(updated))
+    }
+    return .destination(.onboarded(self))
 }
 ```
 
-`copy(mutate:)` is a default-implemented helper on ``NavigationFlow`` that takes a closure, applies it to a mutable copy of `self`, and returns the result. It exists specifically so that returning updated state from a non-mutating method stays a one-liner.
+A few things to note here.
 
-If the async work throws, the error propagates out through `navigator.next(flow)`. The view's `try?` swallows it. If you'd rather treat a failure as fatal to the flow, return `.error(e)` from `next()` instead. The navigator routes that to `onError(_:)` after restoring the stack to the checkpoint, the same way it routes `.complete` to `onComplete()`.
+`copy(mutate:)` is a default-implemented helper on ``NavigationFlow`` that takes a closure, applies it to a mutable copy of `self`, and returns the result. It exists specifically so that producing updated state from a non-mutating method stays a one-liner. The returned `updated` is the value that rides into `.destination(.terms(updated))` or `.destination(.onboarded(updated))`, and that's how `TermsView` or `OnboardedView` ends up holding a flow with `userID` set.
+
+If the async work throws, the error propagates out through `navigator.next(flow)`. The view's `try?` swallows it. If you'd rather treat a failure as fatal to the flow, return `.error(updated, e)` from `next()` instead. The navigator routes that to `onError(_:)` after restoring the stack to the checkpoint, and the flow it receives is the one you handed back, so any mutated state is still observable.
+
+Next, the api call returns whether or not the user should see the terms of agreement view. Perhaps it's location dependent. But regardless of how it's determined on the back end, the flow is able to decide the next view to be shown.
 
 >Note: The async work happens before any navigation occurs. The user sees the last screen they were on until `next()` returns. If the work might take a moment, the calling view should reflect that, usually by disabling its action button or showing a progress indicator while its `Task` is in flight.
 

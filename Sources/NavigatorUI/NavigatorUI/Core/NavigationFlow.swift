@@ -30,7 +30,7 @@ public protocol NavigationFlow: Hashable {
     ///
     /// Use this to emit the initial destination or signal that the flow
     /// is already complete, cancelled, or in error.
-    func start() -> FlowResult<Destination>
+    func start() -> FlowResult<Self>
 
     /// Advances the flow to its next step and returns the result.
     ///
@@ -42,10 +42,10 @@ public protocol NavigationFlow: Hashable {
     ///     Task { try? await navigator.next(flow) }
     /// }
     /// ```
-    /// Next is async and throws in case any asynchronous work or error handling needs to be done, and it also returns an instance of itself in case that work mutates the flow state even further.
+    /// Next is async and throws in case any asynchronous work or error handling needs to be done. The terminal cases of ``FlowResult`` carry the flow itself, so any state the work mutated travels forward with the result.
     ///
     /// (See the `copy` function.)
-    func next() async throws -> (Self, FlowResult<Destination>)
+    func next() async throws -> FlowResult<Self>
 
     /// Called when the flow completes successfully.
     ///
@@ -84,15 +84,15 @@ extension NavigationFlow {
 ///
 /// A flow can either emit a new destination to navigate to, signal that it
 /// has completed, been cancelled, or failed with an error.
-public enum FlowResult<Destination> {
+public enum FlowResult<Flow: NavigationFlow> {
     /// Navigate to the provided destination.
-    case destination(Destination)
+    case destination(Flow.Destination)
     /// The flow has completed successfully.
-    case complete
+    case complete(Flow)
     /// The flow was cancelled before completion.
-    case cancel
+    case cancel(Flow)
     /// The flow failed with the given error.
-    case error(Error)
+    case error(Flow, Error)
 }
 
 extension Navigator {
@@ -117,18 +117,8 @@ extension Navigator {
     ///
     /// - Parameter flow: The flow to start.
     @MainActor public func start(_ flow: some NavigationFlow) {
-        var copy = flow
-        copy.checkpoint = .init(id: id, index: count)
-        switch copy.start() {
-        case .destination(let destination):
-            navigate(to: destination)
-        case .complete:
-            complete(copy)
-        case .cancel:
-            cancel(copy)
-        case .error(let e):
-            error(copy, error: e)
-        }
+        let copy = flow.copy { $0.checkpoint = .init(id: id, index: 0) }
+        dispatch(copy.start())
     }
 
     /// Advances a running navigation flow to its next step.
@@ -136,16 +126,24 @@ extension Navigator {
     /// - Parameter flow: The flow instance to advance.
     @MainActor
     public func next(_ flow: some NavigationFlow) async throws {
-        let (copy, result) = try await flow.next()
+        dispatch(try await flow.next())
+    }
+
+    /// Private function routes a ``FlowResult`` to the matching navigator operation.
+    ///
+    /// Shared by ``start(_:)`` and ``next(_:)`` so the case-by-case
+    /// dispatch lives in one place.
+    @MainActor
+    private func dispatch<F: NavigationFlow>(_ result: FlowResult<F>) {
         switch result {
         case .destination(let destination):
             navigate(to: destination)
-        case .complete:
-            complete(copy)
-        case .cancel:
-            cancel(copy)
-        case .error(let e):
-            error(copy, error: e)
+        case .complete(let flow):
+            complete(flow)
+        case .cancel(let flow):
+            cancel(flow)
+        case .error(let flow, let e):
+            error(flow, error: e)
         }
     }
 

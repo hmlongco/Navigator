@@ -31,6 +31,7 @@ struct FlowExampleView: View {
 }
 
 nonisolated struct OnboardingFlow: NavigationFlow {
+    
     var checkpoint: NavigationFlowCheckpoint?
 
     var firstName: String = ""
@@ -44,18 +45,18 @@ nonisolated struct OnboardingFlow: NavigationFlow {
         self.completion = .init(handler: completion)
     }
 
-    func start() -> FlowResult<Destinations> {
+    func start() -> FlowResult<Self> {
         .destination(.welcome(self))
     }
 
-    func next() async throws -> (Self, FlowResult<Destination>) {
+    func next() async throws -> FlowResult<Self> {
         if firstName.isEmpty || lastName.isEmpty {
-            return (self, .destination(.name(self)))
+            return .destination(.name(self))
         }
         if !isValidEmail {
-            return (self, .destination(.email(self)))
+            return .destination(.email(self))
         }
-        return (self, .destination(.onboarded(self)))
+        return .destination(.onboarded(self))
     }
 
     var isValidEmail: Bool {
@@ -69,7 +70,7 @@ nonisolated struct OnboardingFlow: NavigationFlow {
 }
 
 extension OnboardingFlow {
-    nonisolated enum Destinations: NavigationDestination {
+    nonisolated enum Destination: NavigationDestination {
         case welcome(OnboardingFlow)
         case name(OnboardingFlow)
         case email(OnboardingFlow)

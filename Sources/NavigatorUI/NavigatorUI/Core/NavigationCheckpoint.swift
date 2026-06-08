@@ -72,6 +72,17 @@ nonisolated public struct NavigationCheckpoint<T>: Equatable, Hashable, Sendable
         NavigationCheckpoint(name: name, identifier: identifier)
     }
 
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(name)
+        if let identifier {
+            hasher.combine(identifier)
+        }
+    }
+
+    public static func == (lhs: NavigationCheckpoint, rhs: NavigationCheckpoint) -> Bool {
+        lhs.name == rhs.name && lhs.identifier == rhs.identifier
+    }
+
 }
 
 /// A marker protocol for types that define reusable navigation checkpoints.
@@ -176,13 +187,22 @@ extension Navigator {
     }
 
     internal func find<T>(_ checkpoint: NavigationCheckpoint<T>) -> (Navigator, AnyNavigationCheckpoint)? {
+        findNamed(checkpoint.name)
+    }
+
+    /// Looks up a registered checkpoint by its stable name.
+    ///
+    /// Same search semantics as `find<T>(_:)` but reachable without a typed
+    /// `NavigationCheckpoint<T>` value — used by flows that store only the
+    /// checkpoint's name on their anchor.
+    internal func findNamed(_ name: String) -> (Navigator, AnyNavigationCheckpoint)? {
         if let found = checkpoints.values
-            .filter({ $0.name == checkpoint.name && (isPresenting || $0.index < path.count) })
+            .filter({ $0.name == name && (isPresenting || $0.index < path.count) })
             .sorted(by: { $0.index > $1.index }) // descending, which makes last...
             .first {
             return (self, found)
         }
-        return parent?.find(checkpoint)
+        return parent?.findNamed(name)
     }
 
     internal func cleanCheckpoints() {

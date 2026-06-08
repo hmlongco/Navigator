@@ -23,45 +23,48 @@ The protocol is small. An associated `Destination: NavigationDestination`, a che
 public protocol NavigationFlow: Hashable {
 
     associatedtype Destination: NavigationDestination
+    associatedtype Value
 
-    var checkpoint: NavigationFlowCheckpoint? { get set }
+    var checkpoint: NavigationFlowCheckpoint<Value>? { get set }
 
     func start() -> FlowResult<Self>
     func next() async throws -> FlowResult<Self>
 
     func onComplete()
+    func onComplete(_ value: Value)
     func onCancel()
     func onError(_ error: Error)
 }
 ```
 
-`next()` is `async throws` because deciding what comes next may need to await a network call or surface an error. ``FlowResult`` is generic over the flow type, and its terminal cases (`.complete`, `.cancel`, `.error`) carry the flow itself, so any state the work mutated travels with the result wherever the navigator routes it next. The three lifecycle hooks have empty default implementations. Override only the ones you care about.
+`next()` is `async throws` because deciding what comes next may need to await a network call or surface an error. ``FlowResult`` is generic over the flow type, and its terminal cases (`.complete`, `.completeWithValue`, `.cancel`, `.error`) carry the flow itself, so any state the work mutated travels with the result wherever the navigator routes it next. All four lifecycle hooks have empty default implementations. Override only the ones you care about.
 
 ```swift
 public enum FlowResult<Flow: NavigationFlow> {
     case destination(Flow.Destination)
     case complete(Flow)
+    case completeWithValue(Flow.Value, Flow)
     case cancel(Flow)
     case error(Flow, Error)
 }
 ```
 
-Here's a real flow: an onboarding sequence that collects a name and email and fires a completion callback when the user finishes.
+The `Value` associated type is unconstrained and has no default. Conforming types declare it explicitly with `typealias Value = SomeType`, or, more commonly, let Swift infer it from the generic argument on the `checkpoint` property. A flow that doesn't return a value typically declares `var checkpoint: NavigationFlowCheckpoint<Void>?` and lets `Value = Void` fall out by inference. A flow that returns a `String` declares `var checkpoint: NavigationFlowCheckpoint<String>?` and gets `Value = String`. No marker types required.
+
+Here's a real flow: an onboarding sequence that collects a name and email, walks through a confirmation screen, and returns the user's first name to whoever started it.
 
 ```swift
 nonisolated struct OnboardingFlow: NavigationFlow {
-    typealias Destination = Destinations
 
-    var checkpoint: NavigationFlowCheckpoint?
+    var checkpoint: NavigationFlowCheckpoint<String>?
 
     var firstName: String = ""
     var lastName: String = ""
     var email: String = ""
+    var onboarded: Bool = false
 
-    private let completion: Callback<(String, String, String)>
-
-    init(completion: @escaping @Sendable (String, String, String) -> Void) {
-        self.completion = .init(handler: completion)
+    init(firstName: String = "") {
+        self.firstName = firstName
     }
 
     func start() -> FlowResult<Self> {
@@ -75,22 +78,22 @@ nonisolated struct OnboardingFlow: NavigationFlow {
         if !isValidEmail {
             return .destination(.email(self))
         }
-        return .destination(.onboarded(self))
+        if !onboarded {
+            let copy = copy { $0.onboarded = true }
+            return .destination(.onboarded(copy))
+        }
+        return .completeWithValue(firstName, self)
     }
 
     var isValidEmail: Bool {
         email.range(of: #"^\S+@\S+\.\S+$"#, options: .regularExpression) != nil
     }
-
-    func onComplete() {
-        completion((firstName, lastName, email))
-    }
 }
 ```
 
-Notice what isn't there. No `@Observable`. No class. No `ObservableObject`. No shared store. The flow is a plain struct. The flow *is* its state.
+Notice what isn't there. No `@Observable`. No class. No `ObservableObject`. No shared store. No completion closure passed in at construction. The flow is a plain struct. The flow *is* its state, and the value it returns at the end (`firstName`) lives in the same struct as everything else.
 
-The explicit `typealias Destination = Destinations` is required. Because `start()` and `next()` both return `FlowResult<Self>`, neither signature mentions `Destination` directly, so the compiler has no way to infer the associatedtype from method shape alone. Declare it.
+Two small details. The `Value` associated type isn't declared explicitly. Swift infers `Value = String` from `checkpoint: NavigationFlowCheckpoint<String>?` because the protocol declares `checkpoint: NavigationFlowCheckpoint<Value>?` and the generic argument resolves the associated type for free. And the inner enum below is named `Destination` (singular) to match the protocol's associatedtype, so the compiler infers `Destination` from the nested type without an explicit `typealias`.
 
 ### The Flow Is the State
 
@@ -98,7 +101,7 @@ That's the part worth repeating. The flow struct holds the data the sequence col
 
 ```swift
 extension OnboardingFlow {
-    nonisolated enum Destinations: NavigationDestination {
+    nonisolated enum Destination: NavigationDestination {
         case welcome(OnboardingFlow)
         case name(OnboardingFlow)
         case email(OnboardingFlow)
@@ -174,75 +177,21 @@ func next() async throws -> FlowResult<Self> {
     if !isValidEmail {
         return .destination(.email(self))
     }
-    return .destination(.onboarded(self))
+    if !onboarded {
+        let copy = copy { $0.onboarded = true }
+        return .destination(.onboarded(copy))
+    }
+    return .completeWithValue(firstName, self)
 }
 ```
 
-Each branch reads a piece of state and returns the next destination. Notice that `next()` never returns `.complete` here. The flow's last screen always pushes a confirmation view, and terminating the flow is the confirmation view's job, not the state machine's. Past five or six steps this chain of `if`-checks turns into a debugging puzzle and an explicit step enum is the right refactor.
-
-### Hiding the Handler
-
-The flow needs to do *something* with the data it collects. The naive answer is to hand the handler into the final view as a parameter and let the view call it.
-
-Don't do that.
-
-The completion screen has no business knowing that a callback exists. It wants to know how to dismiss the flow when the user taps Done. The callback, the arguments, the data the callback needs, none of that is the view's problem.
-
-So the closure goes on the flow, private. And the flow fires it from one of the lifecycle hooks the protocol already gives you.
-
-```swift
-private let completion: Callback<(String, String, String)>
-
-func onComplete() {
-    completion((firstName, lastName, email))
-}
-```
-
-`onComplete()` is exactly what it sounds like. A hook that fires after the flow completes. The view calls `navigator.complete(flow)`, the navigator restores the stack to the checkpoint, then calls the flow's `onComplete()`, which fires the closure with the data the flow has been accumulating.
-
-This is the division the protocol is designed around. `start()` and `next()` are navigation decisions. The hooks are where side effects go. Don't reach for the view layer to invoke a callback the flow already has all the information to invoke itself.
-
-#### Why `Callback`, not a bare closure?
-
-``NavigationFlow`` requires `Hashable` so the flow can ride the navigation path as part of a destination enum's associated value. The moment you store a raw closure on the flow you lose the auto-synthesized `Hashable` conformance, because closures aren't `Hashable`.
-
-You could implement `Hashable` by hand, list every value property in `==` and `hash(into:)`, and skip the closure. That works. But Navigator ships ``Callback`` for exactly this case.
-
-```swift
-public struct Callback<Value>: Hashable, Equatable {
-    public let identifier: String
-    public let handler: (Value) -> Void
-    // ... hashes on identifier, calls handler via callAsFunction
-}
-```
-
-`Callback<Value>` wraps a closure with a stable identifier (a fresh UUID by default, or one you pass in). Equality and hashing operate on the identifier instead of the closure itself, so the wrapping flow keeps its synthesized `Hashable` conformance with no boilerplate. The trade is that two callbacks created with the same closure compare unequal, which is the right semantic when the closure is constructed once at flow init and never replaced.
-
-Wrap the incoming closure in the flow's initializer:
-
-```swift
-init(completion: @escaping @Sendable (String, String, String) -> Void) {
-    self.completion = .init(handler: completion)
-}
-```
-
-And invoke it via `callAsFunction`, which lets you call the wrapper like a closure:
-
-```swift
-func onComplete() {
-    completion((firstName, lastName, email))
-}
-```
-
-The single tuple argument matches Callback's `Value` type parameter.
-
->Warning: `Callback` is not `Codable`. Storing one on a flow disables state restoration for any `ManagedNavigationStack` that hosts the flow, and it can interfere with deep linking because external URL handlers can't synthesize the underlying closure. When state restoration or deep-link reachability matters more than a one-shot callback, return the collected value through a checkpoint instead. See <doc:Checkpoints>.
+Each branch reads a piece of state and decides the next move. The first few branches push a destination. The `!onboarded` branch flips a flag on a copy of the flow and pushes the confirmation screen with that updated copy. The final `.completeWithValue` returns the typed value (`firstName`) to whoever's listening at the flow's checkpoint. Past five or six steps this chain of `if`-checks turns into a debugging puzzle and an explicit step enum is the right refactor.
 
 ### Async and Logic Work
 
 The previous example's `next()` is synchronous because it doesn't need to await anything. Real flows often do.
 
-`next()` is `async throws` so it can `await` a network call, a persistence write, or any other effect that produces information needed to decide which step comes next. Mutated state forwards along one of two paths. Terminal cases of `FlowResult` carry the flow directly, so `onComplete()`, `onCancel()`, and `onError(_:)` see the final state. Destination cases carry your destination, and by the convention shown earlier in the `Destinations` enum, each destination case carries the flow as its associated value, so the next view receives the mutated copy.
+`next()` is `async throws` so it can `await` a network call, a persistence write, or any other effect that produces information needed to decide which step comes next. Mutated state forwards along one of two paths. Terminal cases of `FlowResult` carry the flow directly, so `onComplete()`, `onCancel()`, and `onError(_:)` see the final state. Destination cases carry your destination, and by the convention shown earlier in the `Destination` enum, each destination case carries the flow as its associated value, so the next view receives the mutated copy.
 
 ```swift
 func next() async throws -> FlowResult<Self> {
@@ -297,43 +246,127 @@ The checkpoint is recorded relative to the navigator that called `start()`, so c
 
 See <doc:Dismissible> for the full picture of how Navigator tears down nested presentations.
 
-### Completion, Cancellation, and Errors
+### Returning Through a Checkpoint
 
-A flow ends one of two ways. Either `next()` returns one of the terminal `FlowResult` cases (`.complete`, `.cancel`, `.error`), or a view calls the equivalent method on the navigator directly (`navigator.complete(flow)`, `navigator.cancel(flow)`, `navigator.error(flow, error:)`). Both routes do the same thing: restore the navigation stack to the checkpoint, then call the matching hook on the flow.
+The flow has accumulated state. The user is on the final screen. Where does the data go?
 
-The onboarding example uses the imperative form. The confirmation screen knows it's the last step, so it doesn't need the state machine to figure that out.
+``NavigationCheckpoint`` already solved this. A view registers a typed handler with `.navigationCheckpoint(_:) { value in ... }`, and any code in the navigator tree can call ``Navigator/returnToCheckpoint(_:value:)`` to pop back to it and deliver a value of the matching type. The mechanism is the navigation publisher routing a value by identifier, set when the handler registers, consumed when the value arrives.
+
+The flow's terminal value uses the same plumbing. Same checkpoint type, same publisher, same handler. The flow just plugs in.
+
+Declare a typed checkpoint the way you would for any other return-value use:
 
 ```swift
-struct OnboardedView: View {
-    @Environment(\.navigator) private var navigator
-    @State var flow: OnboardingFlow
-
-    var body: some View {
-        VStack {
-            Text("Completed!").font(.largeTitle)
-            Text("That's all there is to it!")
-            Button("Done") {
-                navigator.complete(flow)
-            }
-        }
-        .navigationBarBackButtonHidden()
-    }
+struct FlowCheckpoints: NavigationCheckpoints {
+    static var onboarded: NavigationCheckpoint<String> { checkpoint() }
 }
 ```
 
-The hooks themselves have empty default implementations.
+Start the flow with `returningTo:`, naming the checkpoint as the anchor:
+
+```swift
+navigator.start(OnboardingFlow(), returningTo: FlowCheckpoints.onboarded)
+```
+
+The compiler enforces the type match. `FlowCheckpoints.onboarded` is `NavigationCheckpoint<String>` because `OnboardingFlow`'s `checkpoint` property is `NavigationFlowCheckpoint<String>?` and Swift inferred `Value = String` from there. The two pieces have to line up or it doesn't compile.
+
+The flow returns its value from inside its state machine:
+
+```swift
+if !onboarded {
+    let copy = copy { $0.onboarded = true }
+    return .destination(.onboarded(copy))
+}
+return .completeWithValue(firstName, self)
+```
+
+When `next()` returns `.completeWithValue`, the navigator does three things in sequence. Pops the navigation stack to the named checkpoint. Sends the value through the publisher the checkpoint already listens on. Fires the flow's `onComplete(_:)` hook with the same value.
+
+On the receiving side, the parent view registered an ordinary checkpoint handler:
+
+```swift
+.navigationCheckpoint(FlowCheckpoints.onboarded) { name in
+    self.onboardedName = name
+}
+```
+
+It doesn't know about flows. It registered for a `String` on a named checkpoint, and that's what arrived. The flow's existence is transparent to the receiver. From the receiver's perspective, this is identical to the `returnToCheckpoint(_:value:)` path you've been using all along.
+
+Flows didn't invent a new termination mechanism. They reused the one that already existed.
+
+#### Default anchor
+
+If `start(_:)` is called without `returningTo:`, the navigator stamps an *indexed* anchor instead: a `(navigator id, path index)` pair captured at the moment `start` ran. The flow pops back to the same navigator and index when it terminates. No named checkpoint, no value routing. This is the right default for flows that don't return a value and just need to dismiss back to where they started.
+
+#### Imperative variant
+
+There's an imperative twin to `.completeWithValue` for views that already know they're done:
+
+```swift
+Button("Done") {
+    navigator.complete(flow, returning: flow.firstName)
+}
+```
+
+`navigator.complete(_:returning:)` does the same pop, publisher route, and `onComplete(_:)` hook. The state-machine path is usually cleaner because the flow already knows when it's done, but the imperative shortcut is there.
+
+#### One footgun
+
+A typed flow that terminates via plain `.complete(self)` or `navigator.complete(flow)` (without `returning:`) will pop the stack correctly but won't route a value. The handler doesn't fire. Enum cases can't be conditioned on generic parameters, so the compiler won't catch this. When the flow has a real `Value`, always use the value-returning variants.
+
+#### Lifecycle hooks
+
+The hooks have empty default implementations.
 
 ```swift
 extension NavigationFlow {
     public func onComplete() {}
+    public func onComplete(_ value: Value) {}
     public func onCancel() {}
     public func onError(_ error: Error) {}
 }
 ```
 
-Override only what you need. A welcome toast in `onComplete()`. Telemetry in `onCancel()`. Crash reporting in `onError(_:)`.
+Override only the ones you need. `onComplete()` fires for value-less completion (`.complete` / `navigator.complete(flow)`). `onComplete(_:)` fires for typed completion (`.completeWithValue` / `navigator.complete(_:returning:)`). The two are siblings, not stacked.
 
->Note: The hooks fire *after* the navigator has returned to the checkpoint, not before. If `onComplete()` wants to show a confirmation, the user is already back at the entry point, not on the final step of the flow. That's almost always what you want, but it's worth being explicit about so you don't try to push something onto a stack that no longer exists.
+>Note: All four hooks fire *after* the navigator has returned to the checkpoint, not before. If you override one to show a confirmation toast or kick off a side effect, the user is already back at the entry point, not on the final step of the flow. That's almost always what you want, but worth being explicit about so you don't try to push something onto a stack that no longer exists.
+
+### Cancelling a Flow
+
+A flow can be cancelled two ways, mirroring how it can complete two ways.
+
+The imperative form. A button on a step view calls the navigator directly:
+
+```swift
+Button("Cancel") {
+    navigator.cancel(flow)
+}
+```
+
+`navigator.cancel(flow)` pops to the flow's checkpoint and fires `onCancel()`. Clean and direct when a view knows the user just bailed.
+
+The declarative form lives in `next()`. A flow can terminate itself by returning `.cancel(self)` (or `.error(self, e)`) from its state machine. Same outcome, different driver. A flag the view sets before calling `next(_:)` is the usual pattern:
+
+```swift
+struct SomeFlow: NavigationFlow {
+    var cancelled: Bool = false
+    // ... other state
+
+    func next() async throws -> FlowResult<Self> {
+        if cancelled { return .cancel(self) }
+        // ... normal advancement
+    }
+}
+
+// In a step view:
+Button("Cancel") {
+    Task { try? await navigator.next(flow.copy { $0.cancelled = true }) }
+}
+```
+
+`copy(mutate:)` produces an updated flow with the cancel intent set. `navigator.next(_:)` calls the flow's `next()`, which sees the flag and returns `.cancel(self)`. Same checkpoint pop, same `onCancel()` hook.
+
+Use the imperative form when a view already knows the user cancelled. Use the declarative form when cancellation is a state-driven decision the state machine should make. The same shape works for `.error(self, e)` when an awaited operation fails fatally enough that the flow should tear down rather than let the user retry in place.
 
 ## Protocol Flows
 
@@ -355,7 +388,7 @@ struct AddressEntryView<Flow: AddressCollecting>: View {
 }
 ```
 
-The view is generic over any flow that satisfies the requirement. Both `CheckoutFlow` and `ProfileEditFlow` route their address step through the same implementation. Each flow still declares its own `Destinations` enum and decides which step comes when. Only the screen is shared.
+The view is generic over any flow that satisfies the requirement. Both `CheckoutFlow` and `ProfileEditFlow` route their address step through the same implementation. Each flow still declares its own `Destination` enum and decides which step comes when. Only the screen is shared.
 
 ### When Not to Use a Flow
 

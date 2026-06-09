@@ -16,9 +16,9 @@ struct FlowExampleView: View {
         ManagedNavigationStack { navigator in
             List {
                 Section("Navigation Flows") {
-Button {
-    navigator.start(OnboardingFlow(), returningTo: FlowCheckpoints.onboarded)
-} label: {
+                    Button {
+                        navigator.start(OnboardingFlow(), returningTo: FlowCheckpoints.onboarded)
+                    } label: {
                         HStack {
                             Text("Start Onboarding Flow")
                             Spacer()
@@ -26,9 +26,6 @@ Button {
                                 Text(onboardedName)
                             }
                         }
-                    }
-                    .navigationCheckpoint(FlowCheckpoints.onboarded) { name in
-                        onboardedName = name
                     }
 
                     Button {
@@ -44,9 +41,6 @@ Button {
                             }
                         }
                     }
-                    .navigationCheckpoint(FlowCheckpoints.pickedColor) { color in
-                        pickedColor = color
-                    }
 
                     Button("Start 1-2-3 Flow") {
                         navigator.start(CounterFlow())
@@ -58,6 +52,12 @@ Button {
                         navigator.dismiss()
                     }
                 }
+            }
+            .navigationCheckpoint(FlowCheckpoints.onboarded) { name in
+                onboardedName = name
+            }
+            .navigationCheckpoint(FlowCheckpoints.pickedColor) { color in
+                pickedColor = color
             }
             .navigationTitle("Flow Examples")
         }

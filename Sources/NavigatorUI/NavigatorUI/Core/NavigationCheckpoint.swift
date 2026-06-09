@@ -198,7 +198,7 @@ extension Navigator {
     internal func findNamed(_ name: String) -> (Navigator, AnyNavigationCheckpoint)? {
         if let found = checkpoints.values
             .filter({ $0.name == name && (isPresenting || $0.index < path.count) })
-            .sorted(by: { $0.index > $1.index }) // descending, which makes last...
+            .sorted(by: { $0.index > $1.index })
             .first {
             return (self, found)
         }
@@ -283,7 +283,7 @@ private struct NavigationCheckpointModifier<T>: ViewModifier {
     internal let checkpoint: NavigationCheckpoint<T>
     func body(content: Content) -> some View {
         content
-            .task { navigator.addCheckpoint(checkpoint) }
+            .task(id: checkpoint.name) { navigator.addCheckpoint(checkpoint) }
     }
 }
 

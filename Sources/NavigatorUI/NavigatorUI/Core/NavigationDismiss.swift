@@ -22,13 +22,14 @@ extension Navigator {
     @MainActor
     @discardableResult
     public func dismiss() -> Bool {
-        if isPresented {
-            dismissAction?()
-            dismissAction = nil
-            log(.navigation(.dismissed))
-            return true
+        guard let action = dismissAction else {
+            return false
         }
-        return false
+        dismissAction = nil
+        action()
+        log(.navigation(.dismissed))
+        parent?.removeChild(self)
+        return true
     }
 
     /// Dismisses presented sheet or fullScreenCover views presented by this Navigator.

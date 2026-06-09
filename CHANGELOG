@@ -1,5 +1,9 @@
 # Navigator Changelog
 
+### 2.1.1
+
+* Fix dismiss issue race condition with multiple presented views
+
 ### 2.1.0
 
 * Revise NavigationFlow protocol, examples, and documentation

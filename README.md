@@ -504,6 +504,6 @@ Michael was also one of Google's [Open Source Peer Reward](https://opensource.go
 * [Medium: Navigation Checkpoints in SwiftUI](https://michaellong.medium.com/navigation-checkpoints-in-swiftui-345270388240?sk=a7802f5351fcb3b5cfced714d0bcfaec)
 * [Medium: SwiftUI Navigation With Dismissible](https://michaellong.medium.com/swiftui-navigation-with-dismissible-8de3cab72a4e?sk=dcb743fbb90d59c5775fed33725958b9)
 * [Medium: Eliminating Navigation Registrations in SwiftUI](https://medium.com/the-swift-cooperative/swiftui-eliminating-navigation-registration-7339691c2887?sk=583c8b1fdc7945501f707ea94020737f)
-- [Medium: Navigation Flows: The Flow Is the State](https://medium.com/p/73dcf9576748)
+* [Medium: Navigation Flows: The Flow Is the State](https://medium.com/the-swift-cooperative/navigation-flows-the-flow-is-the-state-73dcf9576748?sk=0d30228d6a01380a2d70459d8a473233)
 * [Medium: Now Previewing Navigator!](https://michaellong.medium.com/now-previewing-navigator-faebf290a1da?sk=88d3ff52057cf0a948279e6be4a15f75)
 * [Factory](https://hmlongco.github.io/Factory/)

@@ -3,6 +3,7 @@
 ### 2.1.2
 
 * Add new NavigationLink convenience inits for strings, string resources, and localized string resources
+* Documentation cleanup
 
 ### 2.1.1
 

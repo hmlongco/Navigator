@@ -20,7 +20,7 @@ It supports...
 
 You might want to reread that last bullet point again...
 
-Navigator is written entirely in Swift and SwiftUI, and supports iOS 16 and above.
+Navigator is written entirely in Swift and SwiftUI, and supports iOS 17 and above.
 
 Ready to get started?
 

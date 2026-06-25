@@ -71,4 +71,4 @@ When a feature needs a view provided by another module (e.g. "external" screen),
 
 ## Coordination pattern
 
-Destinations support the coordination pattern: callers specify *where* to go (the enum case); they do not specify *which* view type or how it is built. The destination enum owns that knowledge. Use `NavigationLink(to: Destination.case)` or `navigator.navigate(to: Destination.case)`; the destination's `body` supplies the view.
+Destinations support the coordination pattern: callers specify *where* to go (the enum case); they do not specify *which* view type or how it is built. The destination enum owns that knowledge. Use `NavigationLink(to: Destination.case)` or `navigator.navigate(to: Destination.case)`; the destination's `body` supplies the view. For a text-only link, `NavigationLink("Title", to: Destination.case)` (Navigator 2.1.2+) takes the title directly as a `String`, `LocalizedStringKey`, or `LocalizedStringResource`.

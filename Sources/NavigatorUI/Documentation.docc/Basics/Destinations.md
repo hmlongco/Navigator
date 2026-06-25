@@ -70,6 +70,11 @@ struct RootView: View {
 ```
 It's that simple.
 
+For text-only links, skip the trailing closure. As of Navigator 2.1.2, `NavigationLink` accepts the title directly alongside the destination, with the title given as a plain string, a `LocalizedStringKey`, or a `LocalizedStringResource`.
+```swift
+NavigationLink("Link to Page 3!", to: HomeDestinations.page3)
+```
+
 ManagedNavigationStack creates a NavigationStack for you and installs the associated Navigator environment variable that "manages" that particular NavigationStack. It provides it with the NavigationPath and also supports navigation options like automatically presenting sheets and fullScreenCovers.
 
 Those with sharp eyes might have noticed something missing in the above code. We're using `NavigationLink` with a destination value, but where's the `.navigationDestination(for: HomeDestinations.self) { ... )` modifier?

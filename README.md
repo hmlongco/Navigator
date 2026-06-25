@@ -84,6 +84,16 @@ struct RootView: View {
 ```
 It's that simple.
 
+For the common case of a text-only link, skip the trailing closure entirely. As of Navigator 2.1.2, `NavigationLink` accepts a title directly alongside the destination.
+```swift
+// Trailing-closure form
+NavigationLink(to: HomeDestinations.page3) { Text("Link to Page 3!") }
+
+// Text shorthand
+NavigationLink("Link to Page 3!", to: HomeDestinations.page3)
+```
+The title argument accepts a plain string, a `LocalizedStringKey`, or a `LocalizedStringResource`, so localized titles work without any extra ceremony.
+
 ManagedNavigationStack creates a NavigationStack for you and installs the associated Navigator environment variable that "manages" that particular NavigationStack. It provides it with the NavigationPath and also supports navigation options like automatically presenting sheets and fullScreenCovers.
 
 Those with sharp eyes might have noticed something missing in the above code. We're using `NavigationLink` with a destination value, but where's the `.navigationDestination(for: HomeDestinations.self) { ... )` modifier?
@@ -296,7 +306,7 @@ Sharp eyes may have spotted the `onNavigationReceive` modifier, which--much like
 
 When received, Navigator will dismiss any presented screens, set the selected tab, and then return normally.
 
-Values are broadcast using `navigationSend()` as shown below.
+Values are broadcast using `send()` as shown below.
 ```swift
 Button("Send Tab Home, Page 2") {
     navigator.send(
@@ -322,7 +332,7 @@ struct RootTabView : View {
         TabView(selection: $selectedTab) {
             ...
         }
-        .onNavigationReceive(assign: $tab) // shortcut
+        .onNavigationReceive(assign: $selectedTab) // shortcut
     }
 }
 
@@ -419,7 +429,7 @@ struct ContentView: View {
                 switch $0 {
                 case .newOrder:
                     NewOrderView()
-                case .orderDetails(let order:
+                case .orderDetails(let order):
                     OrderDetailsView(order)
                 case .produceDetails(let product):
                     ProductDestinations.details(product)
@@ -450,7 +460,7 @@ Or download the source files and add the Navigator folder to your project.
 
 Then `import NavigatorUI` into your project where needed.
 
-Note that the current version of Navigator requires Swift 5.10 minimum and that the minimum version of iOS currently supported with this release is iOS 16.
+Navigator is built with Swift 6 strict concurrency and `@MainActor` isolation throughout. The minimum supported platforms are iOS 17, macOS 14, tvOS 17, watchOS 10, and visionOS 1.
 
 ## Demo Applications
 

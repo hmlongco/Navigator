@@ -19,7 +19,7 @@ Apply this skill when the user:
 ## Core conventions
 
 - **Destinations**: Enums conforming to `NavigationDestination` (Hashable + View). Provide a `body` that returns the correct view for each case; use associated values for parameters. Do not use `NavigationLink(value:label:)` or `NavigationLink(destination:label:)` for destination-driven navigation when using Navigator's no-registration flow.
-- **Links**: Use **`NavigationLink(to: SomeDestination.case, label: { ... })`**. Navigator wraps the value internally; no per-type `navigationDestination(for: MyType.self)` registration is required.
+- **Links**: Use **`NavigationLink(to: SomeDestination.case, label: { ... })`**, or the text shorthand **`NavigationLink("Title", to: SomeDestination.case)`** (Navigator 2.1.2+; title may be a `String`, `LocalizedStringKey`, or `LocalizedStringResource`). Navigator wraps the value internally; no per-type `navigationDestination(for: MyType.self)` registration is required.
 - **Stack**: Use **`ManagedNavigationStack { ... }`** where a `NavigationStack` would go. It provides the `Navigator` in the environment and a single internal registration for all `NavigationDestination` types.
 - **Navigator access**: Use **`@Environment(\.navigator) var navigator`**. Use the navigator for the *current* stack (from the closure of `ManagedNavigationStack` or from a child view). Do not assume the environment navigator is the root when inside a tab or presented view—it is the navigator for that stack.
 

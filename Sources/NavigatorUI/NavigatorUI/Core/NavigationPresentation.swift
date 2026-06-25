@@ -53,7 +53,7 @@ extension Navigator {
 
     /// Returns NavigationDestination of sheet or cover we're currently presenting, if any.
     public var presentingSheetOrCover: (any NavigationDestination)? {
-        (sheet ?? cover)?.wrapped as? NavigationDestination
+        (sheet ?? cover)?.wrapped as? any NavigationDestination
     }
 }
 

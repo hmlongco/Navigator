@@ -21,6 +21,8 @@ SwiftUI's `NavigationLink(value:label:)` requires the value's type to be registe
 
 Therefore: use **`NavigationLink(to: HomeDestinations.page3) { ... }`**, not `NavigationLink(value: HomeDestinations.page3) { ... }`, when you want zero per-type registration. Feature modules can then push their own destination types (e.g. from cards or tabs) without the root view registering every type.
 
+For text-only links (Navigator 2.1.2+), drop the trailing closure and pass the title first: **`NavigationLink("Link to Page 3!", to: HomeDestinations.page3)`**. The title accepts a `String`, `LocalizedStringKey`, or `LocalizedStringResource`.
+
 ## Imperative navigation
 
 - **`navigator.navigate(to: destination)`** — Navigate using the destination's **NavigationMethod** (push, sheet, cover, etc.).

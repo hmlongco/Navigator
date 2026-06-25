@@ -1,5 +1,9 @@
 # Navigator Changelog
 
+### 2.1.2
+
+* Add new NavigationLink convenience inits for strings, string resources, and localized string resources
+
 ### 2.1.1
 
 * Fix dismiss issue race condition with multiple presented views

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "navigator",
+  "description": "SwiftUI navigation skills for Navigator/NavigatorUI",
+  "owner": {
+    "name": "Michael Long",
+    "url": "https://github.com/hmlongco"
+  },
+  "plugins": [
+    {
+      "name": "navigator",
+      "source": "./.claude",
+      "description": "In-depth guide to Navigator, a SwiftUI navigation framework built on NavigationStack with deep linking, checkpoints, and modular destinations.",
+      "version": "2.1.2"
+    }
+  ]
+}

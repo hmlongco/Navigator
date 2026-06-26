@@ -472,7 +472,22 @@ It can be obtained here: [MovieDemo](https://github.com/hmlongco/MovieDemo).
 
 ## AI Skills
 
-Navigator includes a [Claude Code](https://claude.ai/code) skill that gives AI assistants detailed knowledge of Navigator's patterns — destinations, navigation, checkpoints, deep linking, dismissible views, and provided destinations. The skill lives in `.claude/skills/swiftui-navigation-navigator/` in this repository. To install it in your own project, run the following from your project root (the command creates `.claude/skills/` if it doesn't exist):
+Navigator includes a [Claude Code](https://claude.ai/code) skill that gives AI assistants detailed knowledge of Navigator's patterns — destinations, navigation, checkpoints, deep linking, dismissible views, and provided destinations. The skill lives in `.claude/skills/swiftui-navigation-navigator/` in this repository.
+
+### Install as a plugin
+
+The easiest way to add the skill is through the Navigator plugin marketplace. From Claude Code (or Xcode 26's Claude-backed assistant), run:
+
+```text
+/plugin marketplace add hmlongco/Navigator
+/plugin install navigator@navigator
+```
+
+The first command registers the marketplace; the second installs the `navigator` plugin, which carries the skill. There's no per-project file copying, and updates arrive by re-running the install.
+
+### Manual install
+
+If you'd rather vendor the skill files directly, run the following from your project root (the command creates `.claude/skills/` if it doesn't exist):
 
 ```bash
 git clone --depth 1 https://github.com/hmlongco/Navigator /tmp/Navigator && \

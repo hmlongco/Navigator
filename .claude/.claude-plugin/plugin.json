@@ -1,0 +1,9 @@
+{
+  "name": "navigator",
+  "description": "In-depth guide to Navigator, a SwiftUI navigation framework built on NavigationStack with deep linking, checkpoints, and modular destinations.",
+  "version": "2.1.2",
+  "author": {
+    "name": "Michael Long",
+    "url": "https://github.com/hmlongco"
+  }
+}

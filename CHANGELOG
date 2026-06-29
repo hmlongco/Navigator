@@ -4,6 +4,7 @@
 
 * Add new NavigationLink convenience inits for strings, string resources, and localized string resources
 * Navigator supports Xcode 27 skill manifests and its skill can now be imported into Xcode
+* Navigator.current deprecated, static global doesn't play well in multi-scene environments
 * Documentation cleanup
 
 ### 2.1.1

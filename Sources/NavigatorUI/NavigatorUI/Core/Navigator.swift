@@ -113,6 +113,10 @@ public final class Navigator: @unchecked Sendable {
     @ObservationIgnored
     internal var _children: [UUID : WeakNavigator] = [:]
 
+    /// Current, if any.
+    @ObservationIgnored
+    internal weak var _current: Navigator? = nil
+
     /// Dismissible function for this particular navigator.
     @ObservationIgnored
     internal var dismissAction: DismissAction?
@@ -156,14 +160,20 @@ public final class Navigator: @unchecked Sendable {
     // MARK: - Static Properties
 
     /// The currently active navigator
-    public private(set) static weak var current: Navigator?
+    @available(*, deprecated, renamed: "navigator.currentNavigator", message: "Static global doesn't play well in multi-scene environments.")
+    public static var current: Navigator? { _staticCurrent }
 
-    internal static func set(current: Navigator?) {
-        guard let current, Navigator.current?.id != current.id else {
+    /// Backing storage for the deprecated ``current`` property.
+    private static weak var _staticCurrent: Navigator?
+
+    /// Internal set/logging mechanism for current navigator
+    internal func set(current: Navigator?) {
+        guard let current, currentNavigator?.id != current.id else {
             return
         }
         current.log(.lifecycle(.current(current.id, name: current.name)))
-        Navigator.current = current
+        root._current = current
+        Navigator._staticCurrent = current
     }
 
     // MARK: - Computed Properties
@@ -196,7 +206,7 @@ public final class Navigator: @unchecked Sendable {
         self.name = "root"
         self.configuration = configuration
         log(.lifecycle(.configured))
-        Navigator.current = self
+        set(current: self)
     }
 
     /// Internal initializer used by ManagedNavigationStack and navigationDismissible modifiers.
@@ -240,7 +250,7 @@ public final class Navigator: @unchecked Sendable {
         child.presentationModifier = presentationModifierInherits ? presentationModifier : nil
         child.presentationModifierInherits = presentationModifierInherits
         // New child becomes current
-        Navigator.set(current: child)
+        set(current: child)
     }
 
     /// Removes a child navigator from a parent.
@@ -251,7 +261,7 @@ public final class Navigator: @unchecked Sendable {
         if child.isPresented {
             self.isPresenting = false
             if let current = find(id: id) {
-                Navigator.set(current: current)
+                set(current: current)
             }
         }
     }
@@ -302,7 +312,7 @@ extension Navigator {
     /// Note this Navigator is defined when a given ManagedNavigationStack fires its "onAppear" handler, so it should be good for
     /// when a given Navigator first appears and when control returns to a given Navigator.
     public var currentNavigator: Navigator? {
-        Navigator.current
+        root._current
     }
 
     /// Returns an array of any presented children.

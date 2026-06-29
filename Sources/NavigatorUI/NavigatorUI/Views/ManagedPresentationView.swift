@@ -71,7 +71,7 @@ public struct ManagedPresentationView<Content: View>: View {
             .modifier(NavigationPresentationModifiers(navigator: navigator))
             .environment(\.navigator, navigator)
             .onAppear {
-                Navigator.set(current: navigator)
+                navigator.set(current: navigator)
             }
     }
 

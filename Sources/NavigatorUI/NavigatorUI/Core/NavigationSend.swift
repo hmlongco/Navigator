@@ -282,10 +282,14 @@ extension View {
     /// ```swift
     /// .navigationAutoReceive(HomeDestinations.self)
     /// ```
-    public func navigationAutoReceive<T: NavigationDestination>(_ type: T.Type) -> some View {
+    public func navigationAutoReceive<T: NavigationDestination>(_ type: T.Type, delay: TimeInterval? = nil) -> some View {
         self.modifier(OnNavigationReceiveModifier<T> { (value, navigator) in
             navigator.navigate(to: value)
-            return .auto
+            if let delay {
+                return .after(delay)
+            } else {
+                return .auto
+            }
         })
     }
 

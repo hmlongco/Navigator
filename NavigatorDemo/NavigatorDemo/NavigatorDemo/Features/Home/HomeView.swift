@@ -25,10 +25,14 @@ struct HomeRootView: View {
         ManagedNavigationStack(scene: RootTabs.home.id) {
             HomeContentView(viewModel: HomeContentViewModel(resolver: viewModel.resolver, title: "Home Navigation"))
                 .navigationCheckpoint(KnownCheckpoints.home)
+                // long form
                 .onNavigationReceive { (destination: Home, navigator) in
                     navigator.navigate(to: destination)
                     return .auto
                 }
+                // sugared version of above onNavigationReceive code (duplicate receive code ignored)
+                .navigationAutoReceive(Home.self)
+                // Modifies every pushed destination
                 .navigationModifier(inherits: true) { destination in
                     destination()
                         .navigationBarTitleDisplayMode(.inline)

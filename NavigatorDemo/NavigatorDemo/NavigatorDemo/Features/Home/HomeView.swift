@@ -73,12 +73,8 @@ struct HomeContentView: View {
                 }
             }
             Section("Externally Provided Views") {
-                NavigationLink(to: Home.external) {
-                    Text("Link to External View 1!")
-                }
-                NavigationLink(to: Home.external2) {
-                    Text("Link to External View 2!")
-                }
+                NavigationLink("Link to External View 1!", to: Home.external)
+                NavigationLink("Link to External View 2!", to: Home.external2)
                 NavigationLink(to: MissingDestinations.missing) {
                     Text("Link to Missing View Provider!")
                 }

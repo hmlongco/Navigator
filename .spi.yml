@@ -3,4 +3,4 @@ builder:
   configs:
   - scheme: Navigator
 external_links:
-  documentation: "https://hmlongco.github.io/Navigator/documentation/navigator"
+  documentation: "https://hmlongco.github.io/Navigator/documentation/navigatorui/"

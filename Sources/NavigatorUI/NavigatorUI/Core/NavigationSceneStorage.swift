@@ -96,24 +96,33 @@ extension Navigator {
 internal struct NavigationSceneStorageModifier: ViewModifier {
 
     internal var navigator: Navigator
+    internal var name: String? = nil
+
+    func body(content: Content) -> some View {
+        if let name, navigator.configuration?.restorationKey != nil {
+            content.modifier(EnabledNavigationSceneStorageModifier(navigator: navigator, name: name))
+        } else {
+            content
+        }
+    }
+
+}
+
+private struct EnabledNavigationSceneStorageModifier: ViewModifier {
+
+    var navigator: Navigator
 
     @Environment(\.scenePhase) private var scenePhase
     @SceneStorage private var sceneStorage: Data?
 
-    private let name: String?
-
-    init(navigator: Navigator, name: String? = nil) {
+    init(navigator: Navigator, name: String) {
         self.navigator = navigator
-        self.name = name
-        self._sceneStorage = SceneStorage("NavigationSceneStorage.\(name ?? "*")")
+        self._sceneStorage = SceneStorage("NavigationSceneStorage.\(name)")
     }
 
     func body(content: Content) -> some View {
         content
             .onChange(of: scenePhase) { _, phase in
-                guard name != nil else {
-                    return
-                }
                 if phase == .active, let data = sceneStorage {
                     navigator.restore(from: data)
                 } else {

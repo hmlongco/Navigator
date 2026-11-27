@@ -39,6 +39,8 @@ nonisolated public struct NavigationConfiguration {
     /// Increment or change the key when adding/removing checkpoints or changing destination types.
     ///
     /// If no restorationKey is provided then navigation state restoration is disabled.
+    ///
+    /// Note that state restoration is not available in AppKit/macOS.
     public let restorationKey: String?
 
     /// Allows the developer to log navigation messages to the console or to their own logging system.

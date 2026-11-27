@@ -1,5 +1,10 @@
 # Navigator Changelog
 
+### 2.1.5
+
+* Avoid SceneStorage when navigation restoration is disabled #115
+* Fix swiftpackageindex documentation link #113
+
 ### 2.1.4
 
 * Enhance onNavigationRoute with inline variant that doesn't need an instance of NavigationRouteHandling
